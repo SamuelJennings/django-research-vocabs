@@ -1,0 +1,11 @@
+{% extends request.htmx|yesno:"empty.html,base.html" %}
+
+{% block header %}Example Form{% endblock %}
+
+{% block content %}
+<form method='post'>
+  {% csrf_token %}
+  {{form.as_p}}
+  <button type="submit">Submit</button>
+</form>
+{% endblock %}
