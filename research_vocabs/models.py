@@ -1,10 +1,11 @@
+from typing import Any
+
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.db import models
 from django.utils.encoding import force_str
 from django.utils.text import slugify
 from django.utils.translation import gettext as _
 from django.utils.translation import pgettext_lazy
-from taggit.models import GenericTaggedItemBase
 
 
 class Concept(models.Model):
@@ -92,29 +93,16 @@ class TaggedConcept(models.Model):
             models.Index(fields=["content_type", "object_id"]),
         ]
 
+    def __init__(self, URI=None, scheme=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if URI and scheme:
+            self.concept, _ = self.concept_model.add_concept(URI, scheme)
+
+    def save(self, *args, **kwargs):
+        if not self.pk and not self.concept.pk:
+            self.concept.save()
+        return super().save(*args, **kwargs)
+
     @property
     def concept_model(cls):
         return cls._meta.get_field("concept").related_model
-
-    @classmethod
-    def create(cls, content_object, URI, scheme):
-        """Accepts a URI and a ConceptScheme object and adds the concept to the data. If the concept already exists, it will be returned, otherwise a new keyword will be created."""
-
-        concept, created = cls.concept_model.add_concept(URI, scheme)
-        if created:
-            concept.save()
-
-        return cls(content_object=content_object, concept=concept)
-
-
-# class KeywordThrough(GenericTaggedItemBase):
-#     tag = models.ForeignKey(
-#         Concept,
-#         on_delete=models.CASCADE,
-#         related_name="%(app_label)s_%(class)s_items",
-#     )
-
-#     class Meta:
-#         verbose_name = _("keyword")
-#         verbose_name_plural = _("keywords")
-#         app_label = "research_vocabs"

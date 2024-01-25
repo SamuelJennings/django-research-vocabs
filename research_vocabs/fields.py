@@ -1,26 +1,48 @@
 from django.contrib.contenttypes.fields import GenericRelation
 from django.db.models import URLField
-from taggit.managers import TaggableManager
-from taggit.models import GenericTaggedItemBase
+
+from .concepts import ConceptScheme
 
 
 class ConceptField(URLField):
-    """A URL field that stores a URI for a SKOS Concept. The field expects a scheme parameter which takes accepts a
-    valid ConceptSceme object. The field validates that the URI is a member of the ConceptScheme and provides a ChoiceField
-    populated by concepts in the scheme."""
+    """
+    A custom field class that extends the URLField class. This class is used to represent a concept field
+    in a concept scheme. The concept scheme is passed as an argument during the initialization of the class.
 
-    def __init__(self, scheme, *args, **kwargs):
+    Attributes:
+        scheme (ConceptScheme): The concept scheme that this field belongs to.
+
+    Methods:
+
+        get_choice_data(): Returns the concept metadata from the scheme using the DB value.
+    """
+
+    def __init__(self, scheme: ConceptScheme, *args, **kwargs):
+        """
+        Initializes the ConceptField with the given scheme. The scheme's choices are also set as the choices for this field.
+
+        Args:
+            scheme (ConceptScheme): The concept scheme that this field belongs to.
+            *args: Variable length argument list.
+            **kwargs: Arbitrary keyword arguments.
+        """
         self.scheme = scheme
         kwargs["choices"] = self.scheme.choices
         super().__init__(*args, **kwargs)
 
     def deconstruct(self):
+        """Used to recreate the field."""
         name, path, args, kwargs = super().deconstruct()
         kwargs["scheme"] = self.scheme
         return name, path, args, kwargs
 
     def get_choice_data(self):
+        """
+        Returns the concept metadata from the scheme using the DB value.
 
+        Returns:
+            dict: A dictionary containing the concept metadata.
+        """
         # get DB value
         db_value = self.value_from_object(self.model_instance)
 
@@ -29,6 +51,15 @@ class ConceptField(URLField):
 
 
 class TaggableConcepts(GenericRelation):
+    """
+    A custom field class that extends the GenericRelation class. This class is used to create a generic
+    relation to the "research_vocabs.TaggedConcept" model. This allows the model that has this field to
+    have a set of tagged concepts associated with it.
+    """
+
     def __init__(self, *args, **kwargs):
+        """
+        Initializes the TaggableConcepts field with a relation to the "research_vocabs.TaggedConcept" model.
+        """
         kwargs["to"] = "research_vocabs.TaggedConcept"
         super().__init__(*args, **kwargs)
