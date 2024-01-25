@@ -48,8 +48,8 @@ def docs(c):
     """
     Build the documentation and open it in the browser
     """
-    c.run("sphinx-apidoc -M -T -o docs/ research_vocabs **/migrations/* -e --force -d 2")
-    c.run("sphinx-build -E -b html docs docs/_build")
+    # c.run("sphinx-apidoc -M -T -o docs/ research_vocabs **/migrations/* -e --force -d 2")
+    c.run("sphinx-build docs/ docs/_build -E")
 
 
 @task
@@ -94,4 +94,17 @@ def live_docs(c):
     Build the documentation and open it in a live browser
     """
 
-    c.run("sphinx-autobuild -b html --host 127.0.0.1 --port 9000 --watch . -c . . _build/html")
+    # fmt: off
+    command = ("sphinx-autobuild docs/ docs/_build"
+                    " -E"
+                    # " -c ."
+                    " --host 127.0.0.1"
+                    " --port 0"
+                    " --watch ."
+        )
+    # fmt: on
+
+    c.run(command)
+
+    # c.run("sphinx-autobuild docs/ docs/_build -E " / "-c . " / "--host 127.0.0.1 " / "--port 0 --watch .  ")
+    #  sphinx-autobuild -b html --host 0.0.0.0 --port 9000 --watch . -c . . _build/html

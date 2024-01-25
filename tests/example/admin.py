@@ -1,11 +1,16 @@
 from django.contrib import admin
+
+# import render_to_string
+from django.template.loader import render_to_string
 from django.utils.safestring import mark_safe as marksafe
 
 from research_vocabs.models import Concept
 
-from .models import ExampleModel
+from .models import TestModel
 
-admin.site.register(ExampleModel, admin.ModelAdmin)
+admin.site.register(TestModel, admin.ModelAdmin)
+
+# render_to_string("base.html", {"foo": "bar"})
 
 
 @admin.register(Concept)

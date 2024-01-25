@@ -1,28 +1,25 @@
 # from test import GeologicUnit
 
 
-from django.forms import ModelChoiceField
-
-from research_vocabs.forms import KeywordModelChoiceField, KeywordModelForm
-from research_vocabs.models import Concept
+from research_vocabs.forms import KeywordChoiceField, KeywordModelForm
 
 from .choices import BoreholeDrilling, SimpleLithology
-from .models import ExampleModel
+from .models import TestModel
 
 
 class ExampleForm(KeywordModelForm):
     # single_choice = KeywordChoiceField(scheme=SimpleLithology)
     # multi_choice = KeywordMultiChoiceField(scheme=SimpleLithology)
 
-    model_choice = KeywordModelChoiceField(scheme=SimpleLithology)
+    model_choice = KeywordChoiceField(scheme=SimpleLithology)
 
     class Meta:
-        model = ExampleModel
-        fields = ["name", "concept"]  # noqa: RUF012
+        model = TestModel
+        fields = ["name", "concept", "model_choice"]  # noqa: RUF012
 
         taggable_schemes = {  # noqa: RUF012
             "lith": {"scheme": SimpleLithology},
             "drill": {"scheme": BoreholeDrilling, "multiple": True},
         }
 
-        taggable_field = "keywords"
+        taggable_field = "tagged_concepts"  # noqa: RUF012

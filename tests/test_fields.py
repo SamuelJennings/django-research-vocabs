@@ -2,7 +2,7 @@ from django.core.exceptions import ValidationError
 from django.test import TestCase
 from example.choices import SimpleLithology
 
-from research_vocabs.fields import ConceptField
+from research_vocabs.fields import ConceptField, TaggableConcepts
 
 
 class ConceptFieldTest(TestCase):
@@ -20,3 +20,11 @@ class ConceptFieldTest(TestCase):
     def test_field_deconstruct(self):
         name, path, args, kwargs = self.field.deconstruct()
         self.assertEqual(kwargs["scheme"], self.scheme)
+
+
+class TaggableConceptsTest(TestCase):
+    def setUp(self):
+        self.manager = TaggableConcepts()
+
+    def test_keywords_manager_initialization(self):
+        self.assertIsNotNone(self.manager)
