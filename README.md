@@ -1,18 +1,18 @@
 # Django Research Vocabs 
 
-[![Github Build](https://github.com/SSJenny90/django-research-vocabs/actions/workflows/build.yml/badge.svg)](https://github.com/SSJenny90/django-research-vocabs/actions/workflows/build.yml)
-[![Github Docs](https://github.com/SSJenny90/django-research-vocabs/actions/workflows/docs.yml/badge.svg)](https://github.com/SSJenny90/django-research-vocabs/actions/workflows/docs.yml)
-[![CodeCov](https://codecov.io/gh/SSJenny90/django-research-vocabs/branch/main/graph/badge.svg?token=0Q18CLIKZE)](https://codecov.io/gh/SSJenny90/django-research-vocabs)
-![GitHub](https://img.shields.io/github/license/SSJenny90/django-research-vocabs)
-![GitHub last commit](https://img.shields.io/github/last-commit/SSJenny90/django-research-vocabs)
+[![Github Build](https://github.com/Geoluminate/django-research-vocabs/actions/workflows/build.yml/badge.svg)](https://github.com/Geoluminate/django-research-vocabs/actions/workflows/build.yml)
+[![Github Docs](https://github.com/Geoluminate/django-research-vocabs/actions/workflows/docs.yml/badge.svg)](https://github.com/Geoluminate/django-research-vocabs/actions/workflows/docs.yml)
+[![CodeCov](https://codecov.io/gh/Geoluminate/django-research-vocabs/branch/main/graph/badge.svg?token=0Q18CLIKZE)](https://codecov.io/gh/Geoluminate/django-research-vocabs)
+![GitHub](https://img.shields.io/github/license/Geoluminate/django-research-vocabs)
+![GitHub last commit](https://img.shields.io/github/last-commit/Geoluminate/django-research-vocabs)
 ![PyPI](https://img.shields.io/pypi/v/django-research-vocabs)
 
-Streamline the handling of citable research_vocabs in your Django web applications.
+Streamline the handling of citable research vocabularies in your Django web applications.
 
 Documentation
 -------------
 
-The full documentation is at https://ssjenny90.github.io/django-research-vocabs/
+The full documentation is at https://Geoluminate.github.io/django-research-vocabs/
 
 About
 ---------

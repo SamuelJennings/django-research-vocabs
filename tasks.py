@@ -2,17 +2,6 @@ from invoke import task
 
 
 @task
-def install(c):
-    """
-    Install the project dependencies
-    """
-    print("🚀 Creating virtual environment using pyenv and poetry")
-    c.run("poetry install")
-    c.run("poetry run pre-commit install")
-    c.run("poetry shell")
-
-
-@task
 def check(c):
     """
     Check the consistency of the project using various tools
@@ -44,12 +33,23 @@ def test(c, tox=False):
 
 
 @task
-def docs(c):
+def docs(c, live=False):
     """
     Build the documentation and open it in the browser
     """
-    # c.run("sphinx-apidoc -M -T -o docs/ research_vocabs **/migrations/* -e --force -d 2")
-    c.run("sphinx-build docs/ docs/_build -E")
+    if live:
+        # fmt: off
+        command = ("sphinx-autobuild docs/ docs/_build"
+                        " -E"
+                        # " -c ."
+                        " --host 127.0.0.1"
+                        " --port 0"
+                        " --watch ."
+            )
+        # fmt: on
+    else:
+        command = "sphinx-build docs/ docs/_build -E"
+    c.run(command)
 
 
 @task
@@ -87,24 +87,3 @@ def release(c, rule=""):
     c.run("git push --tags")
     c.run("git push origin main")
 
-
-@task
-def live_docs(c):
-    """
-    Build the documentation and open it in a live browser
-    """
-
-    # fmt: off
-    command = ("sphinx-autobuild docs/ docs/_build"
-                    " -E"
-                    # " -c ."
-                    " --host 127.0.0.1"
-                    " --port 0"
-                    " --watch ."
-        )
-    # fmt: on
-
-    c.run(command)
-
-    # c.run("sphinx-autobuild docs/ docs/_build -E " / "-c . " / "--host 127.0.0.1 " / "--port 0 --watch .  ")
-    #  sphinx-autobuild -b html --host 0.0.0.0 --port 9000 --watch . -c . . _build/html

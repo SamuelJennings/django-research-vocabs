@@ -6,7 +6,7 @@ authors = ["Sam Jennings <samuel.scott.jennings@gmail.com>"]
 license = "MIT"
 readme = "README.md"
 packages = [{include = "research_vocabs"}]
-homepage = "https://github.com/SSJenny90/django-research-vocabs"
+homepage = "https://github.com/Geoluminate/django-research-vocabs"
 keywords = ["django", "keywords", "science", "tagging", "scientific", "research", "vocabulary", "RDF"]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -42,8 +42,8 @@ pre-commit = "^3.2.2"
 pytest-cov = "^4.0.0"
 types-requests = "^2.28.11.17"
 pytest-sugar = "^0.9.7"
-geoluminate-docs = {path = "../geoluminate-docs"}
 ipython = "^8.20.0"
+geoluminate-docs = {git = "https://github.com/Geoluminate/geoluminate-docs.git"}
 
 [build-system]
 requires = ["poetry-core"]
