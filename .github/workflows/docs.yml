@@ -31,21 +31,21 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-        
+
       - name: Setup Pages
         uses: actions/configure-pages@v3
-        
+
       - name: Set up the environment
         uses: ./.github/actions/setup-poetry-env
-        
+
       - name: Install and Build 🔧
         run: poetry run invoke docs
-        
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v1
         with:
           path: 'docs/_build'
-          
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v2
