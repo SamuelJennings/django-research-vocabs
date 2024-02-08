@@ -3,6 +3,12 @@ from django import forms
 from research_vocabs.models import Concept, TaggedConcept
 
 
+class TaggableFieldRequired(Exception):
+    def __init__(self, model_name, field):
+        message = f"Model {model_name} does not have a taggable field {field}"
+        super().__init__(message)
+
+
 class KeywordFieldBase:
     def __init__(self, scheme="", *args, **kwargs):
         """Initialize the field."""
@@ -45,7 +51,7 @@ class KeywordFormMixin:
 
         # make sure the model has a taggable field
         if not hasattr(self.Meta.model, self.taggable_field):
-            raise AttributeError(f"Model {self.Meta.model} does not have a taggable field {self.taggable_field}")
+            raise TaggableFieldRequired(self.Meta.model, self.taggable_field)
 
         if self.taggable_schemes:
             for field_name, opts in self.taggable_schemes.items():

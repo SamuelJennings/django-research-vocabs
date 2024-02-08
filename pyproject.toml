@@ -150,7 +150,8 @@ source = ["research_vocabs"]
 [tool.deptry]
 extend_exclude = [
     "tasks.py",
-    "docs/"
+    "docs/*",
+    "tests/*",
 ]
 ignore_transitive = [
     "toml",
@@ -178,4 +179,3 @@ commands =
     pytest --doctest-modules tests --cov --cov-config=pyproject.toml --cov-report=xml
     mypy
 """
-

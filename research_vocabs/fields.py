@@ -1,7 +1,14 @@
 from django.contrib.contenttypes.fields import GenericRelation
 from django.db.models import URLField
 
-from .concepts import ConceptScheme
+
+class MissingConceptSchemeError(Exception):
+    """Raised when a concept scheme is not passed as an argument to the ConceptField class."""
+
+    msg = "ConceptField requires a ConceptScheme object to be passed as an argument."
+
+    # def __init__(self):
+    # super().__init__("ConceptField requires a ConceptScheme object to be passed as an argument.")
 
 
 class ConceptField(URLField):
@@ -17,7 +24,7 @@ class ConceptField(URLField):
         get_choice_data(): Returns the concept metadata from the scheme using the DB value.
     """
 
-    def __init__(self, scheme: ConceptScheme, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         """
         Initializes the ConceptField with the given scheme. The scheme's choices are also set as the choices for this field.
 
@@ -26,7 +33,9 @@ class ConceptField(URLField):
             *args: Variable length argument list.
             **kwargs: Arbitrary keyword arguments.
         """
-        self.scheme = scheme
+        self.scheme = kwargs.pop("scheme", None)
+        if not self.scheme:
+            raise MissingConceptSchemeError
         kwargs["choices"] = self.scheme.choices
         super().__init__(*args, **kwargs)
 

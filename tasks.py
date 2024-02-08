@@ -86,4 +86,3 @@ def release(c, rule=""):
     c.run(f'git tag -a v{version_short} -m "{version}"')
     c.run("git push --tags")
     c.run("git push origin main")
-

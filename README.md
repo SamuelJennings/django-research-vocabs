@@ -1,4 +1,4 @@
-# Django Research Vocabs 
+# Django Research Vocabs
 
 [![Github Build](https://github.com/Geoluminate/django-research-vocabs/actions/workflows/build.yml/badge.svg)](https://github.com/Geoluminate/django-research-vocabs/actions/workflows/build.yml)
 [![Github Docs](https://github.com/Geoluminate/django-research-vocabs/actions/workflows/docs.yml/badge.svg)](https://github.com/Geoluminate/django-research-vocabs/actions/workflows/docs.yml)
@@ -76,4 +76,3 @@ Development commands
 
 Credits
 -------
-

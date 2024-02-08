@@ -1,5 +1,3 @@
-from typing import Any
-
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.db import models
 from django.utils.encoding import force_str
@@ -93,7 +91,9 @@ class TaggedConcept(models.Model):
             models.Index(fields=["content_type", "object_id"]),
         ]
 
-    def __init__(self, URI=None, scheme=None, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
+        URI = kwargs.pop("URI", None)
+        scheme = kwargs.pop("scheme", None)
         super().__init__(*args, **kwargs)
         if URI and scheme:
             self.concept, _ = self.concept_model.add_concept(URI, scheme)

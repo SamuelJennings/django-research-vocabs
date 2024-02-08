@@ -18,6 +18,9 @@ DEBUG = True
 
 ALLOWED_HOSTS = ["*"]
 
+USE_I18N = True
+
+
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
