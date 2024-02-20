@@ -1,10 +1,11 @@
 import importlib
+import logging
 from pathlib import Path
 
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
-from django.db.models import Model
 from rdflib import Graph, Literal, URIRef
+from rdflib import namespace as ns
 from rdflib.namespace import RDF, SKOS, Namespace, NamespaceManager
 
 from .utils import (
@@ -13,6 +14,8 @@ from .utils import (
     get_translations,
     is_translatable,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class ConceptSchemaBase(type):
@@ -41,6 +44,7 @@ class ConceptSchemaBase(type):
         new_class._scheme = new_class._graph.value(predicate=RDF.type, object=SKOS.ConceptScheme)
         new_class.URI = str(new_class._scheme)
         new_class._info = new_class.get_concept_meta(new_class._scheme)
+        new_class.name = new_class.get_concept_label(new_class.URI)
         new_class.__doc__ = new_class._info.get("skos:definition", "")
         new_class.SCHEME = new_class.get_concept_label(new_class._scheme)
 
@@ -53,6 +57,10 @@ class ConceptSchemaBase(type):
         """Returns a generator of all skos:Concepts in the ConceptScheme"""
         graph = graph or cls._graph
         return graph.subjects(predicate=RDF.type, object=SKOS.Concept)
+
+    @property
+    def nm(cls):
+        return cls._graph.namespace_manager
 
     @property
     def collections(cls):
@@ -80,8 +88,8 @@ class ConceptSchemaBase(type):
         info = {}
         for p, o in cls._graph.predicate_objects(concept):
             if isinstance(o, URIRef):
-                o = cls._nm.normalizeUri(o)
-            p = cls._nm.normalizeUri(p)
+                o = cls.nm.normalizeUri(o)
+            p = cls.nm.normalizeUri(p)
 
             if p not in info:
                 info[str(p)] = str(o)
@@ -103,11 +111,18 @@ class ConceptSchemaBase(type):
         for obj in cls._graph.objects(concept, SKOS.prefLabel):
             labels[obj.language] = obj.value
 
+        # print(labels)
         try:
             return labels[lang]
         except KeyError:
-            "BLANK"
-            # return labels[None]
+            # "BLANK"
+            return labels.get(None, "BLANK")
+
+    def get_URI_from_label(cls, label):
+        """Returns the URI of a concept given its label."""
+        for subj in cls.concepts():
+            if cls.get_concept_label(subj) == label:
+                return subj
 
 
 class LocalStorageBase(ConceptSchemaBase):
@@ -206,7 +221,7 @@ class SchemeBuilderBase(ConceptSchemaBase):
 
         Args:
             subj (rdflib.term.URIRef): The subject of the triples to be added to the graph.
-            attrs (dict): A dictionary of attributes to be added to the graph. The keys are predicates and the values are objects.
+            attrs (dict): A dictionary of attributes to be added to the graph. The keys are predicates and the values are objects. Predicates may be rdflib.term.URIRef or strings that can be imported from namespaces in the base rdflib package.
 
         Returns:
             None
@@ -215,7 +230,7 @@ class SchemeBuilderBase(ConceptSchemaBase):
             attrs = {
                 SKOS.prefLabel: _("Wood"),
                 SKOS.altLabel: [_("Timber"), _("Lumber")],
-                SKOS.definition: _(
+                "SKOS.definition": _(
                     "A hard fibrous material that forms the main substance of the trunk or branches of a tree or shrub."
                 ),
             }
@@ -224,6 +239,9 @@ class SchemeBuilderBase(ConceptSchemaBase):
         """
         # loop items in meta and add to graph
         for pred, obj in attrs.items():
+
+            pred = cls.parse_attr_predicate(pred)
+
             if isinstance(obj, list):
                 for literal in obj:
                     if is_translatable(literal):
@@ -236,3 +254,28 @@ class SchemeBuilderBase(ConceptSchemaBase):
 
             else:
                 cls._graph.add((subj, pred, Literal(obj)))
+
+    def parse_attr_predicate(cls, pred):
+        """Handles predicates specified in the attr dict. If the predicate is not a URIRef, we will check if it exists in the base rdflib namespace and import it. We then return the predicate as a URIRef and add the namespace to the graph's namespace manager."""
+        if isinstance(pred, str):
+            if len(pred.split(".")) > 2:
+                return pred
+            namespace_str, term = pred.split(".")
+            # try import namespace from rdflib.namespaces
+            try:
+                # Get the attribute dynamically
+                namespace = getattr(ns, namespace_str)
+            except AttributeError as e:
+                # reraise with a custom message
+                raise AttributeError(  # noqa: TRY003
+                    f"The attribute '{namespace_str}' specified in {cls.__module__}.{cls.__name__} does not exist in the 'ns' module."
+                ) from e
+
+            # Get the term from the namespace
+            pred = getattr(namespace, term)
+            # Add the namespace to the graph's namespace manager if it does not already exist
+            if namespace_str not in cls.nm:
+                logging.debug(f"Binding namespace {namespace_str} to {namespace}")
+                cls.nm.bind(namespace_str, namespace)
+
+        return pred
