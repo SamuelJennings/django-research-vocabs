@@ -36,6 +36,9 @@ class ConceptField(URLField):
         self.scheme = kwargs.pop("scheme", None)
         if not self.scheme:
             raise MissingConceptSchemeError
+
+        kwargs["verbose_name"] = kwargs.get("verbose_name", self.scheme.name)
+
         kwargs["choices"] = self.scheme.choices
         super().__init__(*args, **kwargs)
 
@@ -57,6 +60,15 @@ class ConceptField(URLField):
 
         # get the concept from the scheme
         return self.scheme.get_concept_meta(db_value)
+
+    def get_default_value(self):
+        """
+        Returns the default value for the field.
+
+        Returns:
+            str: The default value for the field.
+        """
+        return self.scheme.default
 
 
 class TaggableConcepts(GenericRelation):
