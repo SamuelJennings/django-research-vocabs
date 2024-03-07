@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.utils import translation
 from django.utils.translation import trans_real
+from rdflib import namespace as ns
 
 
 class LocalFilePathError(Exception):
@@ -50,3 +51,21 @@ def get_translations(msg):
             if translated := trans_real.catalog()._catalog.get(og_msg):
                 translations[lang] = translated
     return translations
+
+
+def is_known_namespace(input_str):
+    """Takes an input_str as "namespace.term" and returns True if the namespace is importable from rdflib.namespace."""
+    if not isinstance(input_str, str):
+        raise TypeError(f"input_str must be a string. You provided {type(input_str)}: {input_str}")
+
+    namespace_str = input_str.split(".")[0]
+
+    # try import namespace from rdflib.namespaces
+    try:
+        # Get the attribute dynamically
+        return getattr(ns, namespace_str.upper())
+    except AttributeError:
+        return False
+
+    # Get the term from the namespace
+    return True

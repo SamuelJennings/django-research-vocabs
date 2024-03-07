@@ -4,7 +4,6 @@ from rdflib.namespace import RDF, SKOS
 from research_vocabs.concepts import (
     ConceptSchemeBuilder,
     LocalConceptScheme,
-    RemoteConceptScheme,
 )
 
 
@@ -33,7 +32,7 @@ class ISC2020(LocalConceptScheme):
 class MyMaterialsScheme(ConceptSchemeBuilder):
     """An example building my own concept scheme. This is a custom class that extends the CustomConceptScheme class. It is used to define a custom concept scheme with custom concepts and collections."""
 
-    Wood = {  # noqa: RUF012
+    Wood = {
         SKOS.prefLabel: _("Wood"),
         SKOS.altLabel: [_("Timber"), _("Lumber")],
         SKOS.definition: _(
@@ -68,6 +67,10 @@ class MyMaterialsScheme(ConceptSchemeBuilder):
             "collectionB": ["Wood"],
         }
 
+
+subcollection = MyMaterialsScheme.as_collection("collectionA")
+
+# print(list(subcollection.choices))
 
 # print(list(SimpleLithology.choices))
 # print(list(MyMaterialsScheme.choices))

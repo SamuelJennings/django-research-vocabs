@@ -5,13 +5,13 @@ from pathlib import Path
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
 from rdflib import Graph, Literal, URIRef
-from rdflib import namespace as ns
-from rdflib.namespace import RDF, SKOS, Namespace, NamespaceManager
+from rdflib.namespace import RDF, SKOS, Namespace
 
 from .utils import (
     LocalFilePathError,
     RemoteURLValidationError,
     get_translations,
+    is_known_namespace,
     is_translatable,
 )
 
@@ -19,11 +19,14 @@ logger = logging.getLogger(__name__)
 
 
 class ConceptSchemaBase(type):
+    from_collection = None
 
     def __new__(cls, name, bases, attrs, **kwargs):
         parents = [b for b in bases if isinstance(b, ConceptSchemaBase)]
         if not parents:
             return super().__new__(cls, name, bases, attrs, **kwargs)
+
+        meta_dict = attrs.get("meta_dict", {})
 
         meta_cls = attrs.pop("Meta", None)
         if meta_cls:
@@ -39,7 +42,7 @@ class ConceptSchemaBase(type):
         if not hasattr(new_class, "_graph"):
             new_class._build_graph(name, attrs)
 
-        new_class._nm = NamespaceManager(new_class._graph, bind_namespaces="rdflib")
+        # new_class._nm = NamespaceManager(new_class._graph, bind_namespaces="rdflib")
 
         new_class._scheme = new_class._graph.value(predicate=RDF.type, object=SKOS.ConceptScheme)
         new_class.URI = str(new_class._scheme)
@@ -82,6 +85,31 @@ class ConceptSchemaBase(type):
     def values(cls):
         """Returns a list of all skos:Concept URIs in the ConceptScheme."""
         return [value for value, _ in cls.choices]
+
+    def as_collection(cls, collection):
+        """Sets a valid collection URI as cls.from_collection and returns a new class that will generate choices from
+        members of the collection only."""
+
+        # for subj in cls.collections:
+        #     print(type(subj), subj)
+        #     collection = cls.default_namespace[collection]
+        #     if subj == collection:
+        #         cls.from_collection = collection
+        #         break
+
+        if isinstance(collection, str):
+            collection = cls.default_namespace[collection]
+
+        # first check if the collection is a valid URI and that it exists in cls.collections
+        if collection not in cls.collections:
+            # print(f"{collection} is not a valid collection in {cls.__name__}")
+            raise ValueError(f"{collection} is not a valid collection in {cls.__name__}")
+
+        return type(
+            f"{cls.__name__}From{collection}",
+            (cls,),
+            {"from_collection": collection, "meta_dict": cls._meta},
+        )
 
     def get_concept_meta(cls, concept):
         """Returns a dictionary containing metadata associated with a given skos:Concept. Metadata is returned as a dict of predicate: object pairs. Multi-valued predicates are returned as lists."""
@@ -178,7 +206,7 @@ class SchemeBuilderBase(ConceptSchemaBase):
             return
         for coll, members in collections.items():
             coll_attrs = {SKOS.member: [cls.default_namespace[m] for m in members]}
-            cls.parse_rdfType(cls.default_namespace[coll], collType, coll_attrs)
+            cls.parse_rdfType(coll, collType, coll_attrs)
 
     def parse_concepts(cls, concepts):
         for subj, attrs in concepts.items():
@@ -257,25 +285,14 @@ class SchemeBuilderBase(ConceptSchemaBase):
 
     def parse_attr_predicate(cls, pred):
         """Handles predicates specified in the attr dict. If the predicate is not a URIRef, we will check if it exists in the base rdflib namespace and import it. We then return the predicate as a URIRef and add the namespace to the graph's namespace manager."""
-        if isinstance(pred, str):
-            if len(pred.split(".")) > 2:
-                return pred
-            namespace_str, term = pred.split(".")
-            # try import namespace from rdflib.namespaces
-            try:
-                # Get the attribute dynamically
-                namespace = getattr(ns, namespace_str)
-            except AttributeError as e:
-                # reraise with a custom message
-                raise AttributeError(  # noqa: TRY003
-                    f"The attribute '{namespace_str}' specified in {cls.__module__}.{cls.__name__} does not exist in the 'ns' module."
-                ) from e
+        if namespace := is_known_namespace(pred):
+            ns_str, term = pred.split(".")
 
             # Get the term from the namespace
             pred = getattr(namespace, term)
             # Add the namespace to the graph's namespace manager if it does not already exist
-            if namespace_str not in cls.nm:
-                logging.debug(f"Binding namespace {namespace_str} to {namespace}")
-                cls.nm.bind(namespace_str, namespace)
+            if ns_str not in cls.nm:
+                logging.debug(f"Binding namespace {namespace} to {cls.nm}")
+                cls.nm.bind(ns_str, namespace)
 
         return pred
