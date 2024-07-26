@@ -9,8 +9,8 @@ Tests for `django-research-vocabs` models module.
 
 from django.contrib.contenttypes.models import ContentType
 from django.test import TestCase
-from example.choices import SimpleLithology
 from example.models import TestModel
+from example.vocabularies import SimpleLithology
 
 from research_vocabs.models import Concept, TaggedConcept
 

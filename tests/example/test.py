@@ -1,19 +1,11 @@
 import json
 
-from rdflib import RDF, SKOS, Graph, Namespace
-from rdflib.query import Result
-
-from research_vocabs.concepts import ConceptScheme
-
-
-class ISC2020(ConceptScheme):
-    # source = "https://vocabs.ardc.edu.au/registry/api/resource/downloads/1211/isc2020.ttl"
-    source = "isc2020.ttl"
-
+from example.vocabularies import ISC2020
+from rdflib import RDF, SKOS, Namespace
 
 ISC = Namespace("http://resource.geosciml.org/classifier/ics/ischart/")
 
-g = ISC2020._graph
+g = ISC2020.graph
 
 
 def collection_members(collection_uri):
@@ -53,7 +45,6 @@ def collection_concepts(collection_uri):
 def get_members(collection_uri):
     members = {}
     for subj, pred, obj in collection_members(collection_uri):
-
         if SKOS.Collection in g.objects(obj, RDF.type) or SKOS.OrderedCollection in g.objects(obj, RDF.type):
             # recursively get members of collections
             value = get_members(obj)

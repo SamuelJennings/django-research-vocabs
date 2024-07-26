@@ -128,26 +128,26 @@ ignore = [
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "tests.settings"
-python_files = ["test_*.py", "*_test.py", "testing/python/*.py"]
+python_files = ["test_*.py"]
 filterwarnings = [
     "ignore",
     "default:::keywords",
 ]
-
+addopts = "--cov --cov-report html"
 
 [tool.coverage.report]
 skip_empty = true
-omit = [
-    "*site-packages*",
-    "*tests*",
-    "*.tox*",
-    ]
 show_missing = "true"
 
 [tool.coverage.run]
 branch = "true"
-source = ["research_vocabs"]
-
+omit = [
+    "*site-packages*",
+    "*/tests/*",
+    "*.tox*",
+    "*__init__.py",
+    "*/migrations/*"
+    ]
 
 [tool.deptry]
 extend_exclude = [

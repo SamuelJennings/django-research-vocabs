@@ -1,30 +1,29 @@
-from django.core.exceptions import ValidationError
 from django.test import TestCase
-from example.choices import SimpleLithology
+from example.vocabularies import SimpleLithology
 
-from research_vocabs.fields import ConceptField, TaggableConcepts
+from research_vocabs.fields import ConceptField
 
 
-class ConceptFieldTest(TestCase):
+class ConceptFieldTest2(TestCase):
     def setUp(self):
-        self.scheme = SimpleLithology  # Initialize this with valid data
-        self.field = ConceptField(scheme=self.scheme)
+        self.vocabulary = SimpleLithology  # Initialize this with valid data
+        self.field = ConceptField(vocabulary=SimpleLithology, max_length=255)
 
     def test_field_initialization(self):
-        self.assertEqual(self.field.scheme, self.scheme)
+        self.assertEqual(self.field.vocabulary, self.vocabulary)
 
     def test_field_choices(self):
-        scheme_choices = list(self.scheme.choices)
+        scheme_choices = list(self.vocabulary.choices)
         self.assertEqual(self.field.choices, scheme_choices)
 
     def test_field_deconstruct(self):
         name, path, args, kwargs = self.field.deconstruct()
-        self.assertEqual(kwargs["scheme"], self.scheme)
+        self.assertEqual(kwargs["vocabulary"], self.vocabulary)
 
 
-class TaggableConceptsTest(TestCase):
-    def setUp(self):
-        self.manager = TaggableConcepts()
+# class TaggableConceptsTest(TestCase):
+#     def setUp(self):
+#         self.manager = TaggableConcepts()
 
-    def test_keywords_manager_initialization(self):
-        self.assertIsNotNone(self.manager)
+#     def test_keywords_manager_initialization(self):
+#         self.assertIsNotNone(self.manager)

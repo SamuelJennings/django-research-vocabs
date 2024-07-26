@@ -1,0 +1,53 @@
+{% load i18n vocabularies %}
+
+
+<h3>{{concept.label|title}}</h3>
+<hr>
+{% compute_qname "skos:definition" as definition %}
+<h6><span data-bs-toggle="tooltip" 
+data-bs-placement="bottom"
+data-bs-title="{{definition.prefix}}:{{definition.name}}" >{{ definition.name|title }}:</span></h6>
+<p class='ms-3'>
+  {{ concept|concept_attr:"skos:definition" }}
+</p>
+
+{% include "research_vocabs/tree.html" %}
+
+<table class='table table-striped'>
+  <tbody>
+    {% process_attrs concept exclude as description %}
+    {% for pred, obj in description %}
+    <tr>
+      <td>
+        <b class="text-nowrap"
+              data-bs-toggle="tooltip" 
+              data-bs-placement="top"
+              data-bs-title="{{pred.0}}:{{pred.2}}" >{{ pred.2|decamelize|capfirst }}</b>
+        
+      </td>
+      <td>
+        {% if obj.is_list %}{% for list_value in obj.value %}
+          <div>              
+            {% if list_value|is_concept %}
+              <a href="{{ list_value.get_absolute_url }}">{{ list_value.label }}</a>
+              {% elif list_value|is_link %}
+              <a href="{{ list_value }}">{{ list_value }}</a>
+              {% else %}
+                {{ list_value }}
+            {% endif %}
+          </div>
+          {% endfor %}
+        {% else %}
+          {% if obj.value|is_concept %}
+            <a href="{{ obj.value.get_absolute_url }}">{{ obj.value.label }}</a>
+          {% elif obj.value|is_link %}
+            <a href="{{ obj.value }}">{{ obj.value }}</a>
+          {% else %}
+            {{ obj.value }}
+          {% endif %}
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>

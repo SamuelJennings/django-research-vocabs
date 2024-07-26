@@ -1,0 +1,64 @@
+{% extends "research_vocabs/base.html" %}
+{% load i18n vocabularies %}
+{% block content %}
+<div class='container'>
+  <h1>{% trans "Vocabularies" %}</h1>
+  <div class="accordion">
+    {% for name, vocab in vocabularies.items %}
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#{{name}}" aria-expanded="false" aria-controls="{{name}}">
+          {{vocab.scheme.label}}
+        </button>
+      </h2>
+      <div id="{{name}}" class="accordion-collapse collapse">
+        <div class="accordion-body">
+          <div class="row">
+            <div class="col-3">
+              <h6>{% trans "Concepts" %}</h6>
+              <span>{{ vocab.concepts|length}}</span>
+                <a href="{{vocab.get_absolute_url}}" class='btn btn-primary w-100'>{% trans "View" %}</a>
+
+            </div>
+            <div class="col-9">
+              <h6>URI</h6>
+              <p><a href="{{vocab.scheme}}">{{vocab.scheme}}</a></p>
+              {% compute_qname "skos:definition" vocab as definition %}
+              <h6><span data-bs-toggle="tooltip" 
+              data-bs-placement="bottom"
+              data-bs-title="{{definition.prefix}}:{{definition.name}}" >{{ definition.name|title }}:</span></h6>
+        
+              <p class='ms-3'>
+                {{ vocab.scheme|concept_attr:"skos:definition" }}
+              </p>
+            </div>
+          </div>
+          {% comment %} <dl>
+            <dt>URI</dt>
+            <dd><a href="{{vocab.get_absolute_url}}">{{vocab.scheme}}</a></dd>
+            {% for k,v in vocab.scheme.meta.items %}
+              <dt>{{ k|label|title }}</dt>
+              <dd>{{v}}</dd>
+            {% endfor %}
+          </dl> {% endcomment %}
+
+
+
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% comment %} {% for name, vocab in object_list %}
+  <h1>{{vocab.scheme.label}}</h1>
+  <dl>
+    <dt>URI</dt>
+    <dd><a href="{{vocab.scheme}}">{{vocab.scheme}}</a></dd>
+    {% for k,v in vocab.scheme.meta.items %}
+      <dt>{{ k|label|title }}</dt>
+      <dd>{{v}}</dd>
+    {% endfor %}
+  </dl>
+{% endfor %} {% endcomment %}
+{% endblock content %}

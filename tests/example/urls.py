@@ -1,10 +1,14 @@
-from django.urls import path
-from django.views.generic import DetailView
+from django.conf import settings
+from django.conf.urls.static import static
+from django.contrib import admin
+from django.urls import include, path
 
-from .models import TestModel
 from .views import ExampleFormView
 
 urlpatterns = [
     path("", ExampleFormView.as_view(), name="example_form"),
-    path("<pk>/", DetailView.as_view(model=TestModel), name="example_detail"),
+    path("vocabularies/", include("research_vocabs.urls")),
+    path("admin/", admin.site.urls),
 ]
+
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

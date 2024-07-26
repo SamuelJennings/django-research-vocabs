@@ -1,40 +1,23 @@
 from django.contrib import admin
-
-# import render_to_string
-from django.template.loader import render_to_string
 from django.utils.safestring import mark_safe
+from django.utils.translation import gettext as _
 
 from research_vocabs.models import Concept
 
+from .forms import AdminForm
 from .models import TestModel
 
-admin.site.register(TestModel, admin.ModelAdmin)
 
-# render_to_string("base.html", {"foo": "bar"})
-mark_safe
+@admin.register(TestModel)
+class TestModelAdmin(admin.ModelAdmin):
+    form = AdminForm
 
 
 @admin.register(Concept)
 class ConceptAdmin(admin.ModelAdmin):
-    list_display = [
-        "label",
-        "URI_display",
-        "scheme_display",
-        "tag_count",
-    ]
-    list_filter = [
-        "scheme_label",
-    ]
+    list_display = ["prefLabel", "linked_uri"]
 
-    def URI_display(self, obj):
-        return mark_safe(f"<a href='{obj.URI}'>{obj.URI}</a>")
+    def linked_uri(self, obj):
+        return mark_safe(f"<a href='{obj.URI}'>{obj.URI}</a>")  # noqa: S308
 
-    URI_display.short_description = "Label"
-
-    def scheme_display(self, obj):
-        return mark_safe(f"<a href='{obj.scheme_URI}'>{obj.scheme_label}</a>")
-
-    scheme_display.short_description = "Scheme"
-
-    def tag_count(self, obj):
-        return obj.research_vocabs_taggedconcept_items.count()
+    linked_uri.short_description = _("URI")

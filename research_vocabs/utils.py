@@ -1,38 +1,27 @@
+import re
+
 from django.conf import settings
+from django.core.cache import caches
 from django.utils import translation
+from django.utils.safestring import SafeString
 from django.utils.translation import trans_real
-from rdflib import namespace as ns
+from rdflib import Graph, URIRef
 
 
 class LocalFilePathError(Exception):
     """Exception raised when a ConceptScheme subclass cannot find its source file."""
 
-    def __init__(self, class_name, file_path):
-        message = f"{class_name} source file {file_path} does not exist"
+    def __init__(self, klass):
+        message = f"{klass} - no source file exists at the specified location"
         super().__init__(message)
 
 
-class RemoteURLValidationError(Exception):
+class RemoteURLError(Exception):
     """Exception raised when a ConceptScheme subclass cannot find its source file."""
 
     def __init__(self, class_name, url):
         message = f"{class_name} remote source URL <{url}> is not valid"
         super().__init__(message)
-
-
-class NamespaceError(Exception):
-    """Exception raised when a ConceptScheme subclass cannot find its source file."""
-
-    def __init__(self, value):
-        message = (
-            f"Meta.namespace must be either a `str` or a `rdflib.Namespace` object. You provided{type(value)}: {value}"
-        )
-        super().__init__(message)
-
-
-def get_default_namespace():
-    """Get the default namespace for the project."""
-    return getattr(settings, "VOCABULARY_NAMESPACE", "https://example.com/vocabularies/")
 
 
 def is_translatable(msg):
@@ -53,19 +42,43 @@ def get_translations(msg):
     return translations
 
 
-def is_known_namespace(input_str):
-    """Takes an input_str as "namespace.term" and returns True if the namespace is importable from rdflib.namespace."""
-    if not isinstance(input_str, str):
-        raise TypeError(f"input_str must be a string. You provided {type(input_str)}: {input_str}")
+def get_setting(key):
+    local_setting = {
+        "DEFAULT_PREFIX": "DEFAULT",
+        "DEFAULT_CACHE": "vocabularies",
+    }
+    return getattr(settings, f"VOCABULARY_{key}", local_setting[key])
 
-    namespace_str = input_str.split(".")[0]
 
-    # try import namespace from rdflib.namespaces
-    try:
-        # Get the attribute dynamically
-        return getattr(ns, namespace_str.upper())
-    except AttributeError:
-        return False
+def get_URIRef(val: str | URIRef, graph: Graph, ns):
+    """
+    Normalizes val to a URIRef object.
 
-    # Get the term from the namespace
-    return True
+    Args:
+        val (str | URIRef): The value to be normalized. It can be a URI string, a valid CURIE (e.g. "SKOS:Concept"), or a URIRef object.
+        graph (Graph): The graph object used for expanding CURIEs.
+
+    Returns:
+        URIRef: A URIRef object.
+
+    """
+    # calling .strip() on a SafeString will convert to regular python str
+    if isinstance(val, SafeString):
+        val = val.strip()
+
+    if isinstance(val, URIRef):
+        return val
+    elif val.startswith("http"):
+        return URIRef(val)
+    elif ":" in val:
+        return graph.namespace_manager.expand_uri(val)
+    else:
+        return ns[val]
+
+
+cache = caches[get_setting("DEFAULT_CACHE")]
+
+
+def decamelize(value):
+    """De-camelizes a camel case string."""
+    return " ".join(re.findall(r"[A-Z]?[a-z]+|[A-Z]+(?=[A-Z]|$)", value)).lower()

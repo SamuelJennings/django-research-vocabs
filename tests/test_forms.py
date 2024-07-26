@@ -1,6 +1,6 @@
 from django.core.exceptions import ValidationError
 from django.test import TestCase
-from example.choices import SimpleLithology
+from example.vocabularies import SimpleLithology
 
 from research_vocabs.forms import KeywordChoiceField, KeywordMultiChoiceField
 

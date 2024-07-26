@@ -1,5 +1,10 @@
 from django.contrib.contenttypes.fields import GenericRelation
-from django.db.models import URLField
+from django.db.models import CharField, Field, URLField
+from django.utils.translation import gettext as _
+
+from research_vocabs.core import Concept
+
+from .registry import vocab_registry
 
 
 class MissingConceptSchemeError(Exception):
@@ -11,10 +16,9 @@ class MissingConceptSchemeError(Exception):
     # super().__init__("ConceptField requires a ConceptScheme object to be passed as an argument.")
 
 
-class ConceptField(URLField):
+class BaseConceptField(Field):
     """
-    A custom field class that extends the URLField class. This class is used to represent a concept field
-    in a concept scheme. The concept scheme is passed as an argument during the initialization of the class.
+    A custom field class that stores vocabulary concepts as a fully qualified URI. The concept scheme is passed as an argument during the initialization of the class.
 
     Attributes:
         scheme (ConceptScheme): The concept scheme that this field belongs to.
@@ -24,28 +28,33 @@ class ConceptField(URLField):
         get_choice_data(): Returns the concept metadata from the scheme using the DB value.
     """
 
+    description = _("A concept within the %(vocabulary)s vocabulary.")
+
     def __init__(self, *args, **kwargs):
         """
         Initializes the ConceptField with the given scheme. The scheme's choices are also set as the choices for this field.
 
         Args:
             scheme (ConceptScheme): The concept scheme that this field belongs to.
-            *args: Variable length argument list.
-            **kwargs: Arbitrary keyword arguments.
         """
-        self.scheme = kwargs.pop("scheme", None)
-        if not self.scheme:
+        self.vocabulary = kwargs.pop("vocabulary", None)
+        if not self.vocabulary:
             raise MissingConceptSchemeError
 
-        kwargs["verbose_name"] = kwargs.get("verbose_name", self.scheme.name)
+        self.scheme = self.vocabulary()
 
-        kwargs["choices"] = self.scheme.choices
+        vocab_registry.register(self.scheme)
+
+        kwargs["choices"] = list(self.scheme.choices)
+        kwargs["verbose_name"] = kwargs.get("verbose_name", self.scheme.scheme().label())
         super().__init__(*args, **kwargs)
+        assert kwargs["choices"] == list(self.choices)
 
     def deconstruct(self):
         """Used to recreate the field."""
         name, path, args, kwargs = super().deconstruct()
-        kwargs["scheme"] = self.scheme
+        kwargs["vocabulary"] = self.vocabulary
+        kwargs.pop("choices", None)
         return name, path, args, kwargs
 
     def get_choice_data(self):
@@ -70,6 +79,66 @@ class ConceptField(URLField):
         """
         return self.scheme.default
 
+    def contribute_to_class(self, cls, name, **kwargs):
+        """
+        Adds the field to the class and sets the model instance.
+
+        Args:
+            cls (Model): The model class to which the field is being added.
+            name (str): The name of the field.
+        """
+        super().contribute_to_class(cls, name, **kwargs)
+        # auto add the vocab to the class
+        setattr(cls, f"{name}_vocab", self.scheme)
+
+    def get_prep_value(self, value):
+        """
+        Converts the Concept object to a name value.
+        """
+        if value is None:
+            return value
+
+        elif isinstance(value, Concept):
+            return value.name
+
+        return value
+
+    def to_python(self, value):
+        """
+        Converts the URI value to a Concept object.
+        """
+        if isinstance(value, Concept):
+            return value
+
+        if value is None:
+            return value
+
+        return Concept(value, self.scheme)
+
+    def validate(self, value, model_instance):
+        """
+        Validates the field value.
+        """
+        if value is None:
+            return
+
+        if not isinstance(value, Concept):
+            raise ValueError(f"{value} is not a Concept object.")
+
+        super().validate(value.name, model_instance)
+
+
+class ConceptURIField(BaseConceptField, URLField):
+    """
+    A field that stores vocabulary concepts as a fully qualified URI.
+    """
+
+
+class ConceptField(BaseConceptField, CharField):
+    """
+    A field that stores vocabulary concepts as a simple text value.
+    """
+
 
 class TaggableConcepts(GenericRelation):
     """
@@ -83,4 +152,9 @@ class TaggableConcepts(GenericRelation):
         Initializes the TaggableConcepts field with a relation to the "research_vocabs.TaggedConcept" model.
         """
         kwargs["to"] = "research_vocabs.TaggedConcept"
+        self.taggable_concepts = kwargs.pop("taggable_concepts", None)
+
         super().__init__(*args, **kwargs)
+
+
+__all__ = ["ConceptURIField", "ConceptField", "TaggableConcepts"]

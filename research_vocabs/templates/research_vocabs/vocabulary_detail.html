@@ -1,0 +1,49 @@
+{% extends "research_vocabs/base.html" %}
+{% load i18n vocabularies %}
+{% block content %}
+<div class='container py-3'>
+  <div class='row'>
+    <div class='col-4'>
+      {% include "research_vocabs/sidebar.html" with concept=object.scheme exclude="type,definition,changeNote"  %}
+    </div>
+    <div class='col-8'>
+      {% with vocabulary.scheme as concept %}
+
+      <h3>{{concept.label|title}}</h3>
+      <hr>
+      {% compute_qname "skos:definition" as definition %}
+      <h6><span data-bs-toggle="tooltip" 
+      data-bs-placement="bottom"
+      data-bs-title="{{definition.prefix}}:{{definition.name}}" >{{ definition.name|title }}:</span></h6>
+
+      <p class='ms-3'>
+        {{ concept|concept_attr:"skos:definition" }}
+      </p>
+      <div class='mb-3'>
+        <h6><span>{% trans "Concept Hierarchy" %}:</span></h6>
+        {% include "research_vocabs/tree.html" %}
+      </div>
+
+      
+      <div class='mb-3'>
+        {% compute_qname "skos:changeNote" as attr %}
+      <h6><span data-bs-toggle="tooltip" 
+      data-bs-placement="bottom"
+      data-bs-title="{{attr.prefix}}:{{attr.name}}" >{{ attr.name|decamelize|title }}:</span></h6>
+
+      {% for item in history %}
+      <p class="ms-3">{{ item }}</p>
+    {% endfor %}
+  </div>
+
+
+
+
+      {% endwith %}
+
+
+
+    </div>
+  </div>
+</div>
+{% endblock content %}

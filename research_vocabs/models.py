@@ -1,77 +1,50 @@
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.db import models
-from django.utils.encoding import force_str
-from django.utils.text import slugify
 from django.utils.translation import gettext as _
-from django.utils.translation import pgettext_lazy
+
+from .core import Concept as BaseConcept
+from .registry import vocab_registry
 
 
 class Concept(models.Model):
-    """Model for storing keywords data"""
+    """Model for storing skos:Concepts"""
 
-    label = models.CharField(verbose_name=pgettext_lazy("Preferred label of concept", "label"), max_length=255)
-
-    URI = models.URLField(_("URI"), max_length=200, null=True, blank=True)
-
-    slug = models.SlugField(
-        verbose_name=pgettext_lazy("A concept URL slug", "slug"),
-        max_length=255,
-        allow_unicode=True,
-        blank=True,
-        null=True,
+    uri = models.URLField(
+        verbose_name=_("URI"),
+        unique=True,
     )
-
-    scheme_label = models.CharField(
-        verbose_name=pgettext_lazy("Label of concept scheme", "scheme"),
+    prefLabel = models.CharField(
+        verbose_name=_("preferred label"),
         max_length=255,
-        blank=True,
-        null=True,
-    )
-    scheme_URI = models.URLField(
-        verbose_name=pgettext_lazy("URI of concept scheme", "scheme URI"),
-        blank=True,
-        null=True,
-    )
-    scheme_slug = models.SlugField(
-        verbose_name=pgettext_lazy("A concept scheme URL slug", "scheme slug"),
-        max_length=255,
-        allow_unicode=True,
-        blank=True,
-        null=True,
     )
 
     class Meta:
-        verbose_name = _("keyword")
-        verbose_name_plural = _("keywords")
-        default_related_name = "keywords"
-        unique_together = ["label", "scheme_URI"]
+        verbose_name = _("concept")
+        verbose_name_plural = _("concepts")
 
     def __str__(self):
-        return force_str(self.label)
+        return f"{self.prefLabel}"
 
-    def save(self, *args, **kwargs):
-        if self._state.adding and not self.slug:
-            self.slug = slugify(self.label)
-            self.scheme_slug = slugify(self.scheme_label)
-        else:
-            return super().save(*args, **kwargs)
+    def local_name(self):
+        return self.uri.split("/")[-1]
 
-    @classmethod
-    def add_concept(cls, URI, scheme):
-        """Accepts a URI and a ConceptScheme object and adds the concept to the data. If the concept already exists, it will be returned, otherwise a new keyword will be created."""
+    def namespace(self):
+        return self.uri.rsplit("/", 1)[0] + "/"
 
-        return cls.objects.get_or_create(
-            URI=URI,
-            defaults={
-                "label": scheme.get_concept_label(URI),
-                "scheme_label": scheme.SCHEME,
-                "scheme_URI": scheme.URI,
-            },
-        )
+    def s3(self):
+        return f"<{self.uri}>"
+
+    @property
+    def vocabulary(self):
+        """Get the vocabulary that this concept belongs to from vocab_registry."""
+        return vocab_registry.get_vocabulary(self.namespace())
+
+    def as_concept(self):
+        return BaseConcept(self.uri, self.vocabulary)
 
 
-class TaggedConcept(models.Model):
-    object_id = models.IntegerField(verbose_name=_("object ID"), db_index=True)
+class BaseTaggedConcept(models.Model):
+    object_id = models.IntegerField(verbose_name=_("object ID"))
     content_type = models.ForeignKey(
         "contenttypes.ContentType",
         verbose_name=_("content type"),
@@ -85,6 +58,7 @@ class TaggedConcept(models.Model):
     )
 
     class Meta:
+        abstract = True
         verbose_name = _("tagged concept")
         verbose_name_plural = _("tagged concepts")
         indexes = [
@@ -106,3 +80,14 @@ class TaggedConcept(models.Model):
     @property
     def concept_model(cls):
         return cls._meta.get_field("concept").related_model
+
+
+class TaggedConcept(BaseTaggedConcept):
+    pass
+
+
+class TaggedUUIDConcept(BaseTaggedConcept):
+    object_id = models.UUIDField(verbose_name=_("object ID"))
+
+
+__all__ = ["Concept", "TaggedConcept", "TaggedUUIDConcept"]
