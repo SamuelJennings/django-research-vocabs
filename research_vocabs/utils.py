@@ -71,7 +71,7 @@ def get_URIRef(val: str | URIRef, graph: Graph, ns):
     elif val.startswith("http"):
         return URIRef(val)
     elif ":" in val:
-        return graph.namespace_manager.expand_uri(val)
+        return graph.namespace_manager.expand_curie(val)
     else:
         return ns[val]
 

@@ -1,39 +1,67 @@
 from django.utils.translation import gettext_lazy as _
 
-from research_vocabs import LocalVocabulary, RemoteVocabulary, VocabularyBuilder
+from research_vocabs import LocalVocabulary, VocabularyBuilder
+from research_vocabs.builder.skos import Collection, Concept
 from research_vocabs.registry import vocab_registry
 
 
 class SimpleLithology(LocalVocabulary):
     class Meta:
         source = "./vocab_data/simple_lithology.ttl"
-        default_namespace = "lith"
+        prefix = "lith"
+        namespace = "http://resource.geosciml.org/classifier/cgi/lithology/"
 
 
-class ISC2020(RemoteVocabulary):
+class ISC2020(LocalVocabulary):
     class Meta:
-        source = "https://vocabs.ardc.edu.au/registry/api/resource/downloads/1211/isc2020.ttl"
-        # source = "./vocab_data/isc2020.ttl"
+        # source = "https://vocabs.ardc.edu.au/registry/api/resource/downloads/1211/isc2020.ttl"
+        source = "./vocab_data/isc2020.ttl"
+        prefix = "isc"
+        namespace = "http://resource.geosciml.org/classifier/ics/ischart/"
+        from_collection = "isc:test"
+        collections = {
+            "test": Collection(
+                members=[
+                    "Albian",
+                    "Aeronian",
+                ],
+                ordered=True,
+            )
+        }
+
+
+class SampleStatus(LocalVocabulary):
+    class Meta:
+        source = "./vocab_data/status.rdf"
+        prefix = "odm2"
+        namespace = "http://vocabulary.odm2.org/status/"
+
+
+class FeatureType(LocalVocabulary):
+    class Meta:
+        source = "./vocab_data/samplingfeaturetype.rdf"
+        prefix = "odm2b"
+        namespace = "http://vocabulary.odm2.org/samplingfeaturetype/"
 
 
 class CustomMaterials(VocabularyBuilder):
     """An example building my own concept scheme. This is a custom class that extends the CustomConceptScheme class. It is used to define a custom concept scheme with custom concepts and collections."""
 
-    Wood = {
-        "skos:prefLabel": _("Wood"),
-        "skos:altLabel": [_("Timber"), _("Lumber")],
-        "skos:definition": _(
+    Wood = Concept(
+        prefLabel=_("Wood"),
+        altLabel=[_("Timber"), _("Lumber")],
+        definition=_(
             "A hard fibrous material that forms the main substance of the trunk or branches of a tree or shrub."
         ),
-    }
+    )
 
-    Metal = {
-        "skos:prefLabel": _("Metal"),
-        "skos:altLabel": [_("Metallic")],
-        "skos:definition": _(
+    Metal = Concept(
+        prefLabel=_("Metal"),
+        altLabel=[_("Metallic")],
+        definition=_(
             "A solid material that is typically hard, shiny, malleable, fusible, and ductile, with good electrical and thermal conductivity."
         ),
-    }
+    )
 
     class Meta:
         name = "materials"
@@ -46,18 +74,26 @@ class CustomMaterials(VocabularyBuilder):
                 "Metal",
             ],
         }
-        namespaces = {
-            "mats": "www.example.org/",
-        }
-        default_namespace = "mats"
+        prefix = "mats"
+        namespace = "http://www.example.org/"
         collections = {
-            "collectionA": [
-                "Wood",
-                "Metal",
-            ],
-            "collectionB": [
-                "Wood",
-            ],
+            "collectionA": Collection(
+                prefLabel=_("Collection A"),
+                definition=_("A collection of materials."),
+                ordered=True,
+                members=[
+                    "Wood",
+                    "Metal",
+                ],
+            ),
+            "collectionB": Collection(
+                prefLabel=_("Collection B"),
+                definition=_("A collection of materials."),
+                ordered=True,
+                members=[
+                    "Wood",
+                ],
+            ),
         }
         ordered_collections = ["collectionA"]
 
@@ -67,7 +103,7 @@ vocab_registry.register(m)
 
 # c = m.concepts()[0]
 
-sl = SimpleLithology()
+# sl = SimpleLithology()
 
 # for concept in sl.concepts():
 #     broader = concept.attrs.get(SKOS.broader, [])

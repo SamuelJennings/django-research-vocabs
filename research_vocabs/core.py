@@ -1,10 +1,11 @@
 import logging
 
-from django.urls import reverse, reverse_lazy
-from rdflib import Graph, Namespace, URIRef
+from django.urls import reverse_lazy
+from rdflib import Graph, Literal, Namespace, URIRef
 from rdflib.namespace import RDF, SKOS
 
-from .utils import get_URIRef
+from .options import VocabMeta
+from .utils import get_translations, get_URIRef, is_translatable
 
 logger = logging.getLogger(__name__)
 
@@ -28,22 +29,19 @@ class Concept:
         if rdf_type:
             self.rdf_type = rdf_type
         self.vocabulary = vocabulary
-        self.def_ns = self.vocabulary.default_namespace
+        self.namespace = self.vocabulary.ns
         self.graph = vocabulary.graph
         self.nm = self.graph.namespace_manager
-
-        self.URI = get_URIRef(URI, self.graph, self.def_ns)
+        self.URI = get_URIRef(URI, self.graph, self.namespace)
         pre, ns, name = self.nm.compute_qname(self.URI)
-        self.prefix = pre
         self.name = name
-        self.namespace = ns
         self._attrs = {}
         if (self.URI, RDF.type, None) not in self.graph:
             msg = f"'{self.name}' not found in {self.vocabulary.scheme().name}."
             raise ValueError(msg)
 
     def __getitem__(self, key):
-        key = get_URIRef(key, self.graph)
+        key = get_URIRef(key, self.graph, self.namespace)
         return self.attrs.get(key, None)
 
     def __str__(self):
@@ -96,42 +94,6 @@ class Concept:
         )
 
 
-class VocabularyOptions:
-    name = None
-    """The name of the vocabulary."""
-
-    prefix = ""
-    namespaces = {}
-    default_namespace = ""
-    scheme_attrs = {}
-    collections = {}
-    ordered_collections = []
-    name = ""
-    source: str | dict = ""
-    store_uris = False
-    term_identifier = SKOS.Concept
-
-    def __init__(self, **kwargs):
-        for k, v in kwargs.items():
-            if k.startswith("_"):
-                continue
-            elif getattr(self, k, None) is None:
-                msg = f"Invalid Meta option: {k}"
-                raise AttributeError(msg)
-            else:
-                setattr(self, k, v)
-
-
-class VocabMeta(type):
-    def __new__(cls, name, bases, attrs):
-        meta_class = attrs.pop("Meta", None)
-
-        if meta_class:
-            attrs["_meta"] = VocabularyOptions(**meta_class.__dict__)
-
-        return super().__new__(cls, name, bases, attrs)
-
-
 class VocabularyBase(metaclass=VocabMeta):
     """
     Base class for vocabulary instances.
@@ -139,13 +101,18 @@ class VocabularyBase(metaclass=VocabMeta):
 
     graph: Graph | None = None
     _scheme: Concept | None = None
+    _concepts: list[Concept] | None = None
+    _choices: list[tuple[str, str]] | None = None
 
     def __init__(self, include: str | URIRef | list = "", exclude: str | URIRef | list = "", tree=False, group=True):
+        self.ns = Namespace(self._meta.namespace)
         if self.graph is None:
             # assigns graph directly to class so that it is shared across all instances
             self.__class__.graph = self.build_graph()
 
-        self.bind_namespaces()
+        self.graph.bind(self._meta.prefix, self.ns)
+        self.namespaces = dict(self.graph.namespaces())
+        self.build_collections()
 
     def __str__(self):
         return self.scheme().label("en")
@@ -178,8 +145,19 @@ class VocabularyBase(metaclass=VocabMeta):
     @property
     def choices(self):
         """Returns a generator of tuples of (value, label) for all skos:Concepts in the ConceptScheme. This is used to populate Django ChoiceFields in the same way as Django's built-in choices."""
-        for concept in self.concepts():
-            yield self.get_choice_tuple(concept)
+        if self._choices:
+            return self._choices
+        else:
+            if coll := self._meta.from_collection:
+                # coll_uri = self.graph.namespace_manager.expand_curie(coll)
+
+                collection = Concept(coll, self, rdf_type=SKOS.Collection)
+
+                self._choices = [self.get_choice_tuple(member) for member in collection["skos:member"]]
+                return self._choices
+
+            self._choices = [self.get_choice_tuple(concept) for concept in self.concepts()]
+            return self._choices
 
     def tree(self):
         """Returns a tree structure of the vocabulary."""
@@ -230,22 +208,8 @@ class VocabularyBase(metaclass=VocabMeta):
         name = self.scheme().name
         return reverse_lazy("vocabularies:detail", kwargs={"vocabulary": name})
 
-    def bind_namespaces(self):
-        for prefix, uri in self._meta.namespaces.items():
-            if not uri:
-                uri = reverse("vocabularies:detail", kwargs={"vocabulary": self._meta.name})
-
-            self.graph.bind(prefix, Namespace(uri))
-        # extract the default namespace from the graph
-        self.namespaces = dict(self.graph.namespaces())
-        self.default_uri = self.namespaces.get(self._meta.default_namespace, "http://example.org/")
-        self.default_namespace = Namespace(self.default_uri)
-
     def get_choice_tuple(self, concept: Concept):
-        if self._meta.store_uris:
-            return str(concept), concept.label()
-        else:
-            return concept.name, concept.label()
+        return concept.name, concept.label()
 
     def build_graph(self):
         """This should be overriden in the subclass to build the graph from a local file or remote URL."""
@@ -258,12 +222,89 @@ class VocabularyBase(metaclass=VocabMeta):
         return self._scheme
 
     def concepts(self):
-        """Returns a generator of all subjects where the RDF.type is a klass.term_identifier."""
-        concepts = [
-            Concept(s, self) for s in self.graph.subjects(predicate=RDF.type, object=self._meta.term_identifier)
-        ]
-        return concepts
+        """Returns a generator of all subjects where the RDF.type is a SKOS.Concept."""
+        if self.__class__._concepts:
+            return self.__class__._concepts
+        else:
+            self.__class__._concepts = [
+                Concept(s, self) for s in self.graph.subjects(predicate=RDF.type, object=SKOS.Concept)
+            ]
+            if self._meta.ordered:
+                self.__class__._concepts = sorted(self.__class__._concepts, key=lambda x: x.label())
+            return self.__class__._concepts
 
     def get_concept(self, name: str | URIRef) -> Concept:
         """Returns a Concept object from the Graph based on the name or URI."""
         return Concept(name, self)
+
+    # BUILDER METHODS
+
+    def build_collections(self):
+        collections = self._meta.collections
+        ordered_collections = self._meta.ordered_collections
+        for name, collection in collections.items():
+            collection["skos:member"] = [get_URIRef(m, self.graph, self.ns) for m in collection["skos:member"]]
+
+            if not collection.ordered:
+                collection["skos:member"] = sorted(collection["skos:member"])
+
+            rdfType = SKOS.OrderedCollection if name in ordered_collections else SKOS.Collection
+            self.add_concept(name, rdfType, collection)
+
+    def _build_translatable_triples(self, subj, pred, obj):
+        self.graph.add((subj, pred, Literal(obj, "en")))
+        for lang, msg in get_translations(obj).items():
+            self.graph.add((subj, pred, Literal(msg, lang=lang)))
+
+    def build_concepts(self):
+        class_attrs = self.__class__.__dict__
+        for subj, attrs in class_attrs.items():
+            # not the most robust way to distinguish declared concepts
+            # but it works for now
+            if isinstance(attrs, dict):
+                self.add_concept(subj, SKOS.Concept, attrs)
+
+    # @classmethod
+    def add_concept(self, term, object: URIRef, attrs: dict):  # noqa: A002
+        """
+        Adds a type to a subject in the graph and parses a dictionary of attributes.
+
+        Args:
+            subj (str): The subject of the triples to be added to the graph. It will be namespaced using the default namespace of the class.
+            rdfType (rdflib.term.URIRef): The type to be added to the subject.
+            attrs (dict): A dictionary of attributes to be added to the graph. The keys are predicates and the values are objects.
+
+        Returns:
+            None
+
+        Example:
+            MyVocabulary().add_concept("myVocabTerm", SKOS.Concept, {
+                SKOS:prefLabel: "My LocalVocabulary Term",
+                SKOS:altLabel: ["My Vocab Term", "MVT"],
+                SKOS:definition: "A term in my vocabulary.",
+            })
+        """
+        # make sure subj is properly namespaced
+        subject = self.ns[term]
+
+        self.graph.add((subject, RDF.type, object))
+
+        # loop items in meta and add to graph
+        for p, o in attrs.items():
+            if not isinstance(p, URIRef):
+                p = self.graph.namespace_manager.expand_curie(p)
+
+            if isinstance(o, list):
+                for entry in o:
+                    if is_translatable(entry):
+                        self._build_translatable_triples(subject, p, entry)
+                    elif isinstance(entry, URIRef):
+                        self.graph.add((subject, p, entry))
+                    else:
+                        self.graph.add((subject, p, Literal(entry)))
+
+            elif is_translatable(o):
+                self._build_translatable_triples(subject, p, o)
+
+            else:
+                self.graph.add((subject, p, Literal(o)))
