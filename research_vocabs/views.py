@@ -21,32 +21,17 @@ class VocabularyDetailView(DetailView):
         try:
             self.vocabulary = vocab_registry.registry[self.kwargs["vocabulary"]]
         except KeyError as e:
-            msg = f"LocalVocabulary {self.kwargs['vocabulary']} not found"
+            msg = "The requested vocabulary could not be found"
             raise Http404(msg) from e
-        else:
-            return self.vocabulary
+        return self.vocabulary
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["vocabulary"] = self.vocabulary
 
-        history = self.vocabulary.scheme()["skos:changeNote"]
-        if not isinstance(history, list) and history is not None:
-            history = [history]
-        context["history"] = history
-
+        if "term" in self.kwargs:
+            context["concept"] = self.vocabulary.get_concept(self.kwargs["term"])
+        else:
+            context["is_scheme"] = True
+            context["concept"] = self.vocabulary.scheme()
         return context
-
-
-class TermDetailView(VocabularyDetailView):
-    template_name = "research_vocabs/term_detail.html"
-    context_object_name = "concept"
-    description_exclude = ["type", "definition", "prefLabel"]
-
-    def get_object(self):
-        self.vocabulary = super().get_object()
-        try:
-            return self.vocabulary.get_concept("lith:" + self.kwargs["term"])
-        except ValueError as e:
-            msg = f"Term {self.kwargs['term']} not found in {self.kwargs['vocabulary']}"
-            raise Http404(msg) from e

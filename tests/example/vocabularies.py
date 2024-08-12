@@ -1,6 +1,6 @@
 from django.utils.translation import gettext_lazy as _
 
-from research_vocabs import LocalVocabulary, VocabularyBuilder
+from research_vocabs import LocalVocabulary, RemoteVocabulary, VocabularyBuilder
 from research_vocabs.builder.skos import Collection, Concept
 from research_vocabs.registry import vocab_registry
 
@@ -28,6 +28,22 @@ class ISC2020(LocalVocabulary):
                 ordered=True,
             )
         }
+
+
+class SamplingFeatureGeoType(RemoteVocabulary):
+    class Meta:
+        source = {
+            "source": "http://vocabulary.odm2.org/api/v1/samplingfeaturegeotype/?format=skos",
+            "format": "xml",
+        }
+        scheme_attrs = {
+            "skos:prefLabel": _("Sampling Feature Geo Type"),
+            "skos:altLabel": _("ODM2 Sampling Feature Geo Type"),
+            "skos:definition": _("A vocabulary for describing the types of geographic features that can be sampled."),
+        }
+        # source = "http://vocabulary.odm2.org/api/v1/samplingfeaturegeotype/?format=skos"
+        prefix = "odm2b"
+        namespace = "http://vocabulary.odm2.org/samplingfeaturegeotype/"
 
 
 class SampleStatus(LocalVocabulary):

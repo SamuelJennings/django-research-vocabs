@@ -1,44 +1,6 @@
 {% load i18n vocabularies %}
-<div class='card'>
-  <h5 class='card-header'>{{ concept.label|title }}</h5>
-  <div class='card-body'>
-<dl>
-  <dt>URI</dt>
-  <dd><a href="{{ concept.URI }}">{{ concept.URI }}</a></dd>
-
-
-  {% process_attrs concept exclude as description %}
-  {% for pred, obj in description %}
-  <dt class="text-nowrap"
-  data-bs-toggle="tooltip" 
-  data-bs-placement="top"
-  data-bs-title="{{pred.0}}:{{pred.2}}" >{{ pred.2|decamelize|capfirst }}</dt>
-
-      <dd class='ms-1'>
-        {% if obj.is_list %}{% for list_value in obj.value %}
-          <div>              
-            {% if list_value|is_concept %}
-              <a href="{{ list_value.get_absolute_url }}">{{ list_value.label }}</a>
-              {% elif list_value|is_link %}
-              <a href="{{ list_value }}">{{ list_value }}</a>
-              {% else %}
-                {{ list_value }}
-            {% endif %}
-          </div>
-          {% endfor %}
-        {% else %}
-          {% if obj.value|is_concept %}
-            <a href="{{ obj.value.get_absolute_url }}">{{ obj.value.label }}</a>
-          {% elif obj.value|is_link %}
-            <a href="{{ obj.value }}">{{ obj.value }}</a>
-          {% else %}
-            {{ obj.value }}
-          {% endif %}
-        {% endif %}
-      </dd>
-      {% endfor %}
-
+<div class="sticky-bottom overflow-x-hidden">
+  <dl>
+    {% render_dl concept %}
   </dl>
-
-  </div>
 </div>

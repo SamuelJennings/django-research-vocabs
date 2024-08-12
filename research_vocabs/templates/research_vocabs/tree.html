@@ -1,14 +1,14 @@
-
-{% comment %} <form class="d-flex mb-3" role="search"> {% endcomment %}
-  <input id="treeSearch" class="form-control mb-3" type="search" placeholder="Search" aria-label="Search" value="{{concept.label}}">
-{% comment %} </form> {% endcomment %}
+<input id="treeSearch"
+       class="form-control mb-3"
+       type="search"
+       placeholder="Search"
+       aria-label="Search"
+       value="{{ concept }}">
 <div id="jstree"></div>
-
-
 <script>
   $(document).ready(function() {
 
-    const name = '{{ concept.name }}';
+    const name = '{{ concept }}';
 
     $('#jstree').jstree({
       'core': {
@@ -16,8 +16,6 @@
       },
       "plugins" : [ "search", "sort" ],
       'search': {
-        'show_only_matches': true,
-        'show_only_matches_children': true,
         search_callback: function(str, node) {
           // exact matches only
           if (node.id.toLowerCase() === str.toLowerCase()) {
@@ -25,8 +23,7 @@
           }
           {% comment %} if (node.text.toLowerCase().includes(str.toLowerCase())) {
             return true;
-          } {% endcomment %}
-          
+} {% endcomment %}
           return false;
         }
       }

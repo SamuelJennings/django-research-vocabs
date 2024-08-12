@@ -1,10 +1,10 @@
 from django.urls import path
 
-from .views import TermDetailView, VocabularyDetailView, VocabularyListView
+from .views import VocabularyDetailView, VocabularyListView
 
 app_name = "vocabularies"
 urlpatterns = [
     path("", VocabularyListView.as_view(), name="list"),
     path("<vocabulary>/", VocabularyDetailView.as_view(), name="detail"),
-    path("<vocabulary>/<term>/", TermDetailView.as_view(), name="term"),
+    path("<vocabulary>/<term>/", VocabularyDetailView.as_view(), name="term"),
 ]

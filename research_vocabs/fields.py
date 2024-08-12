@@ -30,7 +30,7 @@ class BaseConceptField(Field):
 
     description = _("A concept within the %(vocabulary)s vocabulary.")
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, include_only: list = None, *args, **kwargs):
         """
         Initializes the ConceptField with the given scheme. The scheme's choices are also set as the choices for this field.
 
@@ -41,14 +41,13 @@ class BaseConceptField(Field):
         if not self.vocabulary:
             raise MissingConceptSchemeError
 
-        self.scheme = self.vocabulary()
+        self.scheme = self.vocabulary(include_only=include_only)
 
         vocab_registry.register(self.scheme)
 
         kwargs["choices"] = list(self.scheme.choices)
         kwargs["verbose_name"] = kwargs.get("verbose_name", self.scheme.scheme().label())
         super().__init__(*args, **kwargs)
-        assert kwargs["choices"] == list(self.choices)
 
     def deconstruct(self):
         """Used to recreate the field."""

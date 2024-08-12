@@ -1,0 +1,19 @@
+{% load vocabularies %}
+<dl>
+  {% for def in definitions %}
+    <dt>
+      <span class="fw-semibold text-nowrap"
+            title="{{ def.uri }}"
+            data-bs-toggle="tooltip"
+            data-bs-html="true"
+            data-bs-placement="bottom"
+            data-bs-title="<span class='nowrap'>{{ def.uri }}</span>">
+      <a class="link-dark link-underline link-underline-opacity-0 link-underline-opacity-75-hover"
+         href="{{ def.uri }}">{{ def.label|capfirst }}</a>
+    </span>
+  </dt>
+  <dd>
+    {% include "research_vocabs/partials/value.html" with value=def.value %}
+  </dd>
+{% endfor %}
+</dl>

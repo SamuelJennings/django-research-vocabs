@@ -1,0 +1,14 @@
+{% load vocabularies %}
+<ul class="ps-3">
+  {% for value in values_list %}
+    <li class="text-decoration-none">
+      {% if value|type_of == "concept" %}
+        {% include "research_vocabs/partials/concept.html" %}
+      {% elif value|type_of == "uriref" %}
+        {% include "research_vocabs/partials/uri.html" %}
+      {% else %}
+        {{ value }}
+      {% endif %}
+    </li>
+  {% endfor %}
+</ul>

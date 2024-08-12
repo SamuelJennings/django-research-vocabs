@@ -14,10 +14,30 @@ logger = logging.getLogger(__name__)
 # - include or exclude concepts using list of values (can use a filter method, can use collections)
 
 
+class ConceptAttrs(dict):
+    def __init__(self, graph, namespace, **kwargs):
+        self.graph = graph
+        self.namespace = namespace
+        super().__init__(**kwargs)
+
+    def __getitem__(self, key):
+        key = get_URIRef(key, self.graph, self.namespace)
+        return super().__getitem__(key)
+
+    def get(self, key, default=None):
+        key = get_URIRef(key, self.graph, self.namespace)
+        return super().get(key, default)
+
+
 class Concept:
     """A class representing a SKOS Concept in a given RDF graph. This class is used to extract metadata from a Concept and provide a more user-friendly interface for accessing metadata."""
 
     rdf_type = SKOS.Concept
+    definition_types = [
+        "skos:definition",
+        "dcterms:description",
+        # "purl:definition",
+    ]
 
     def __init__(self, URI: str | URIRef, vocabulary=None, rdf_type=None):
         """Initializes a new Concept instance.
@@ -35,17 +55,18 @@ class Concept:
         self.URI = get_URIRef(URI, self.graph, self.namespace)
         pre, ns, name = self.nm.compute_qname(self.URI)
         self.name = name
-        self._attrs = {}
+        self._attrs = ConceptAttrs(self.graph, self.namespace)
         if (self.URI, RDF.type, None) not in self.graph:
             msg = f"'{self.name}' not found in {self.vocabulary.scheme().name}."
             raise ValueError(msg)
 
-    def __getitem__(self, key):
-        key = get_URIRef(key, self.graph, self.namespace)
-        return self.attrs.get(key, None)
-
     def __str__(self):
         return self.name
+        # return self.nm.normalizeUri(self.URI)
+
+    def __html__(self):
+        curie = self.nm.normalizeUri(self.URI)
+        return f'<a href="{self.get_absolute_url()}">{curie}</a>'
 
     def __repr__(self):
         return f"<Concept: {self.name}>"
@@ -79,13 +100,19 @@ class Concept:
 
         return self._attrs
 
+    def definition(self):
+        """Returns the definition of the Concept."""
+        for pred in self.definition_types:
+            if pred := self.attrs.get(pred):
+                return pred
+
+        return ""
+
     # def label(self, lang=settings.LANGUAGE_CODE):
     def label(self, lang="en"):
-        # lang = lang.lower().split("-")[0]
         labels = {}
         for obj in self.graph.objects(self.URI, SKOS.prefLabel):
             labels[obj.language] = obj.value
-        # probably should default to settings.LANGUAGE_CODE
         return labels.get(lang, labels.get(None, ""))
 
     def get_absolute_url(self):
@@ -104,7 +131,7 @@ class VocabularyBase(metaclass=VocabMeta):
     _concepts: list[Concept] | None = None
     _choices: list[tuple[str, str]] | None = None
 
-    def __init__(self, include: str | URIRef | list = "", exclude: str | URIRef | list = "", tree=False, group=True):
+    def __init__(self, include_only: list = None):
         self.ns = Namespace(self._meta.namespace)
         if self.graph is None:
             # assigns graph directly to class so that it is shared across all instances
@@ -113,6 +140,7 @@ class VocabularyBase(metaclass=VocabMeta):
         self.graph.bind(self._meta.prefix, self.ns)
         self.namespaces = dict(self.graph.namespaces())
         self.build_collections()
+        self.include_only = include_only
 
     def __str__(self):
         return self.scheme().label("en")
@@ -132,6 +160,9 @@ class VocabularyBase(metaclass=VocabMeta):
             )
             raise TypeError(msg)
 
+    def label(self, lang="en"):
+        return self.scheme().label(lang)
+
     @property
     def labels(self):
         """Returns a list of all skos:prefLabels for all skos:Concepts in the ConceptScheme."""
@@ -144,20 +175,25 @@ class VocabularyBase(metaclass=VocabMeta):
 
     @property
     def choices(self):
-        """Returns a generator of tuples of (value, label) for all skos:Concepts in the ConceptScheme. This is used to populate Django ChoiceFields in the same way as Django's built-in choices."""
+        """Returns a python list of tuples of (value, label) for all skos:Concepts in the ConceptScheme. This is used to populate Django ChoiceFields in the same way as Django's built-in choices."""
         if self._choices:
             return self._choices
-        else:
-            if coll := self._meta.from_collection:
-                # coll_uri = self.graph.namespace_manager.expand_curie(coll)
 
-                collection = Concept(coll, self, rdf_type=SKOS.Collection)
-
-                self._choices = [self.get_choice_tuple(member) for member in collection["skos:member"]]
-                return self._choices
-
-            self._choices = [self.get_choice_tuple(concept) for concept in self.concepts()]
+        if self.include_only:
+            # only return those concepts specified in the "include" list
+            self._choices = [self.get_choice_tuple(self.get_concept(i)) for i in self.include_only]
             return self._choices
+
+        if coll := self._meta.from_collection:
+            # if "from_collection" is specified as a Meta option, return only the members of that collection
+
+            collection = Concept(coll, self, rdf_type=SKOS.Collection)
+
+            self._choices = [self.get_choice_tuple(member) for member in collection["skos:member"]]
+            return self._choices
+
+        self._choices = [self.get_choice_tuple(concept) for concept in self.concepts()]
+        return self._choices
 
     def tree(self):
         """Returns a tree structure of the vocabulary."""
@@ -201,7 +237,6 @@ class VocabularyBase(metaclass=VocabMeta):
                         "a_attr": {"href": concept.get_absolute_url()},
                     }
                 )
-        print(tree[0])
         return tree
 
     def get_absolute_url(self):
@@ -225,13 +260,13 @@ class VocabularyBase(metaclass=VocabMeta):
         """Returns a generator of all subjects where the RDF.type is a SKOS.Concept."""
         if self.__class__._concepts:
             return self.__class__._concepts
-        else:
-            self.__class__._concepts = [
-                Concept(s, self) for s in self.graph.subjects(predicate=RDF.type, object=SKOS.Concept)
-            ]
-            if self._meta.ordered:
-                self.__class__._concepts = sorted(self.__class__._concepts, key=lambda x: x.label())
-            return self.__class__._concepts
+
+        self.__class__._concepts = [
+            Concept(s, self) for s in self.graph.subjects(predicate=RDF.type, object=SKOS.Concept)
+        ]
+        if self._meta.ordered:
+            self.__class__._concepts = sorted(self.__class__._concepts, key=lambda x: x.label())
+        return self.__class__._concepts
 
     def get_concept(self, name: str | URIRef) -> Concept:
         """Returns a Concept object from the Graph based on the name or URI."""

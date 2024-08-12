@@ -1,0 +1,10 @@
+{% load vocabularies %}
+{% if value|type_of == "list" %}
+  {% include "research_vocabs/partials/list.html" with values_list=value %}
+{% elif value|type_of == "concept" %}
+  {% include "research_vocabs/partials/concept.html" %}
+{% elif value|type_of == "uriref" %}
+  {% include "research_vocabs/partials/uri.html" %}
+{% else %}
+  {{ value }}
+{% endif %}

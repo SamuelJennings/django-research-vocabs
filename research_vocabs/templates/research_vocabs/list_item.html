@@ -1,0 +1,8 @@
+{% load i18n vocabularies %}
+<div class="card mb-3">
+  <div id="{{ name }}" class="card-body">
+    <h5 class="card-title">{% i18n_label vocab.scheme %}</h5>
+    <p>{{ vocab.scheme.definition }}</p>
+    <a href="{{ vocab.get_absolute_url }}" class="btn btn-primary">{% trans "View" %}</a>
+  </div>
+</div>
