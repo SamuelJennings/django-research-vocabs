@@ -1,13 +1,12 @@
 {% extends "research_vocabs/base.html" %}
 {% load i18n vocabularies %}
-{% block content %}
-  <div class="container">
-    <h1 class="mb-0">{% trans "Vocabularies" %}</h1>
-    <hr class="mt-1">
-    <div class="vocabulary-list">
-      {% for name, vocab in vocabularies.items %}
-        {% include "research_vocabs/list_item.html" %}
-      {% endfor %}
-    </div>
+{% block content_inner_title %}
+  {% trans "Vocabularies" %}
+{% endblock content_inner_title %}
+{% block content_inner %}
+  <div class="vocabulary-list">
+    {% for name, vocab in vocabularies.items %}
+      {% include "research_vocabs/list_item.html" %}
+    {% endfor %}
   </div>
-{% endblock content %}
+{% endblock content_inner %}

@@ -6,20 +6,20 @@
       {% if not is_scheme %}
         <div class="mb-3">
           <h6>
-            <span>{% trans "Occurs in" %}
-            </h6>
-            <a href="{% url "vocabularies:detail" vocabulary=vocabulary.scheme.name %}">{{ vocabulary.scheme.label }}</a>
-          </div>
-        {% endif %}
-        <div class="mb-3">
-          <h6>
-            <span>{% trans "Structure" %}</span>
+            <span>{% trans "Occurs in" %}</span>
           </h6>
-          {% include "research_vocabs/tree.html" %}
+          <a href="{% url "vocabularies:detail" vocabulary=vocabulary.scheme.name %}">{{ vocabulary.scheme.label }}</a>
         </div>
+      {% endif %}
+      <div class="mb-3">
+        <h6>
+          <span>{% trans "Structure" %}</span>
+        </h6>
+        {% include "research_vocabs/tree.html" %}
       </div>
     </div>
-  {% endblock sidebar %}
-  {% block main %}
-    {% render_table concept %}
-  {% endblock main %}
+  </div>
+{% endblock sidebar %}
+{% block content_inner %}
+  {% render_table concept %}
+{% endblock content_inner %}
