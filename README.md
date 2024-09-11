@@ -22,6 +22,24 @@ Django Research Vocabs is designed to facilitate the management and organization
 Features
 -----------
 
+- Link to remote or locally-stored RDF-based vocabularies and use them easily in your Django project
+
+- Declaratively build your own standardized vocabulary and utilize it in your Django models
+
+- Form fields that display vocabularies just like a standard ChoiceField
+
+- Model fields that allow you to link to, and validate against, a set of vocabulary terms
+
+- Abstract "Concept" model that allows you to store vocabulary terms directly in your database
+
+- Abstract "ConceptTree" model that allows you to store hierarchical vocabularies in your database (requires django-treebeard)
+
+- (Optional) GenericConcept model that allows you to store arbitrary terms in your database and establish standard Django relationships
+
+
+
+
+
 - **Keywords Models**: The package offers pre-built Django models for research_vocabs references, authors, journals, and other relevant entities. These models allow developers to store and manage research_vocabs-related information in their applications' databases.
 
 - **Integration**: Django Research Vocabs easily integrates with existing models in a Django project, enabling the association of research_vocabs references with other data objects, such as articles, blog posts, or research papers.
@@ -65,14 +83,6 @@ Does the code actually work?
     source <YOURVIRTUALENV>/bin/activate
     (myenv) $ pip install tox
     (myenv) $ tox
-
-
-Development commands
----------------------
-
-    pip install -r requirements_dev.txt
-    invoke -l
-
 
 Credits
 -------
