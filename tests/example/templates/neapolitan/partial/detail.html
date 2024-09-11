@@ -1,0 +1,10 @@
+<dl class="divide-y divide-gray-100">
+    {% for field, val in object %}
+        <div class="px-4 py-6 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-0">
+            <dt>{{ field|capfirst }}:</dt>
+            <dd>
+                {{ val }}
+            </dd>
+        </div>
+    {% endfor %}
+</dl>

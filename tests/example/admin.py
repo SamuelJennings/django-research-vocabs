@@ -5,7 +5,9 @@ from django.utils.translation import gettext as _
 from research_vocabs.models import Concept
 
 from .forms import AdminForm
-from .models import TestModel
+from .models import Lithology, TestModel
+
+admin.site.register(Lithology)
 
 
 @admin.register(TestModel)
@@ -15,9 +17,9 @@ class TestModelAdmin(admin.ModelAdmin):
 
 @admin.register(Concept)
 class ConceptAdmin(admin.ModelAdmin):
-    list_display = ["prefLabel", "linked_uri"]
+    list_display = ["name", "label", "vocab_name", "linked_uri"]
 
     def linked_uri(self, obj):
-        return mark_safe(f"<a href='{obj.URI}'>{obj.URI}</a>")  # noqa: S308
+        return mark_safe(f"<a href='{obj.uri}'>{obj.uri}</a>")  # noqa: S308
 
     linked_uri.short_description = _("URI")

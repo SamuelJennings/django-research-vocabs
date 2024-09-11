@@ -1,12 +1,11 @@
-from django.urls import reverse_lazy
-from django.views.generic import CreateView, FormView, UpdateView
+from neapolitan.views import CRUDView
 
 from .forms import ExampleForm
 from .models import TestModel
 
 
-class ExampleFormView(CreateView):
+class ExampleCRUDView(CRUDView):
     model = TestModel
     form_class = ExampleForm
-    template_name = "test_form.html"
-    success_url = "."
+    fields = ["name", "concept_label", "concept_builder", "m2m"]
+    # success_url = reverse_lazy("example_form")

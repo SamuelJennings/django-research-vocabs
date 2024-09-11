@@ -45,8 +45,10 @@
       </div>
     </nav>
     <main>
-      {% block content %}
-      {% endblock content %}
+      <div class="container col-9">
+        {% block content %}
+        {% endblock content %}
+      </div>
     </main>
     <script>
       const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')

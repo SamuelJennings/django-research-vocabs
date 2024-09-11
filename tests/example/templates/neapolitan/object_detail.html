@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% load neapolitan %}
+{% block content %}
+  <style>
+  .gts2020 {
+    background-color: RGBA(var(--bs-success-rgb));
+  }
+  .simplelithology {
+    background-color: RGBA(var(--bs-secondary-rgb));
+  }
+  </style>
+  <h1>{{ object }}</h1>
+  {% object_detail object view.fields %}
+  {% for tag in object.taggable_concepts.all %}
+    <a href="{{ tag.uri }}"><span class="badge {{ tag.vocab_name }}">{{ tag.label|capfirst }}</span></a>
+  {% endfor %}
+{% endblock content %}

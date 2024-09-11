@@ -28,8 +28,11 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "crispy_forms",
+    "crispy_bootstrap5",
     "research_vocabs",
     "example",
+    "neapolitan",
 ]
 
 MIDDLEWARE = [
@@ -82,7 +85,16 @@ CACHES = {
         "BACKEND": "django.core.cache.backends.dummy.DummyCache",
     },
     "vocabularies": {
-        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
-        # "LOCATION": "vocabularies",
+        "BACKEND": "django.core.cache.backends.filebased.FileBasedCache",
+        "LOCATION": BASE_DIR / ".vocabularies-cache",
     },
 }
+
+if not os.path.exists(CACHES["vocabularies"]["LOCATION"]):
+    os.makedirs(CACHES["vocabularies"]["LOCATION"])
+
+VOCABULARY_DEFAULT_CACHE = "vocabularies"
+
+CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
+
+CRISPY_TEMPLATE_PACK = "bootstrap5"

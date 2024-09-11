@@ -3,10 +3,10 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 
-from .views import ExampleFormView
+from .views import ExampleCRUDView
 
 urlpatterns = [
-    path("", ExampleFormView.as_view(), name="example_form"),
+    *ExampleCRUDView.get_urls(),
     path("vocabularies/", include("research_vocabs.urls")),
     path("admin/", admin.site.urls),
 ]

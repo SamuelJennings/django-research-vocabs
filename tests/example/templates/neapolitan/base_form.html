@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block content %}
+  <div class="row h-100 justify-content-center">
+    {% block sidebar %}
+    {% endblock sidebar %}
+    <div class="col-9">
+      {% block form_content %}
+      {% endblock form_content %}
+    </div>
+  </div>
+{% endblock %}

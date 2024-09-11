@@ -1,0 +1,66 @@
+{% extends "neapolitan/base_form.html" %}
+{% load crispy_forms_tags i18n static %}
+{% block extra_head %}
+  {{ form.media.css }}
+  <style>
+  .form-nav {
+    position: sticky;
+    top: 4rem;
+    right: 0;
+    z-index: 2;
+    height: calc(100vh - 7rem);
+    overflow-y: auto;
+  }
+  fieldset > fieldset > legend {
+    font-size: 1.2rem;
+    font-weight: 500;
+  }
+  fieldset {
+    padding: 1.2rem 0;
+    border-bottom: 1px solid #e9ecef;
+  }
+  </style>
+  <style>
+    .select2-container--default .select2-selection--multiple .select2-selection__choice {
+      cursor: move !important;
+    }
+  </style>
+  {% comment %} <link href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.css" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script> {% endcomment %}
+{% endblock extra_head %}
+{% block sidebar %}
+  {% if form_nav %}
+    <div class="col-3 border-end">
+      <div id="literature-form-nav" class="form-nav list-group list-group-flush">
+        {% for fieldset in form.helper.layout %}
+          {% if fieldset.css_id %}
+            <a class="list-group-item list-group-item-action"
+               id="nav-{{ fieldset.css_id }}"
+               href="#{{ fieldset.css_id }}">{{ fieldset.legend }}</a>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+{% endblock sidebar %}
+{% block form_content %}
+  <div data-bs-spy="scroll"
+       data-bs-target="#literature-form-nav"
+       data-bs-smooth-scroll="true"
+       tabindex="0">
+    <h1>
+      {% if object %}
+        {% trans "Edit" %} {{ object_verbose_name }}
+      {% else %}
+        {% trans "Create" %} {{ object_verbose_name }}
+      {% endif %}
+    </h1>
+    <hr>
+    {% comment %} <form method="post" {% if form.is_multipart %}enctype="multipart/form-data"{% endif %} action="{% if object %}{{ update_view_url }}{% else %}{{ create_view_url }}{% endif %}" id="literatureForm"> {% endcomment %}
+    {% crispy form %}
+  </div>
+{% endblock form_content %}
+{% block js %}
+  {{ form.media.js }}
+  {% comment %} <script src="{% static "literature/js/select2-sortable2.js" %}"></script> {% endcomment %}
+{% endblock js %}

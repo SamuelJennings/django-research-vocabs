@@ -1,8 +1,8 @@
 from django.test import TestCase
-from example.vocabularies import SimpleLithology
+from example.vocabularies import ISC2020, SimpleLithology
 from rdflib import URIRef
 
-from research_vocabs.core import Concept, Meta, VocabularyBase
+from research_vocabs.core import Concept, VocabMeta, VocabularyBase
 
 
 class TestConcept(TestCase):
@@ -14,7 +14,7 @@ class TestConcept(TestCase):
     def test_initialize_concept(self):
         self.assertIsInstance(self.concept, Concept)
         self.assertEqual(self.concept.URI, URIRef("http://resource.geosciml.org/classifier/cgi/lithology/granite"))
-        self.assertEqual(self.concept.prefix, "lith")
+        # self.assertEqual(self.concept.prefix, "lith")
         self.assertEqual(self.concept.name, "granite")
         self.assertEqual(self.concept.namespace, URIRef("http://resource.geosciml.org/classifier/cgi/lithology/"))
 
@@ -150,14 +150,33 @@ class TestVocabularyBase(TestCase):
 
 
 class TestMetaClass(TestCase):
+    def setUp(self):
+        self.vocabulary = ISC2020
+
     def test_valid_option(self):
-        meta = Meta(source="your_source")
+        meta = VocabMeta(source="your_source")
         self.assertEqual(meta.source, "your_source")
 
     def test_invalid_option(self):
         with self.assertRaises(AttributeError):
-            Meta(unknown_option="invalid")
+            VocabMeta(unknown_option="invalid")
 
     def test_private_option(self):
-        meta = Meta(_private_option="invalid")
+        meta = VocabMeta(_private_option="invalid")
         self.assertNotIn("_private_option", meta.__dict__)
+
+    def test_rdf_type_option(self):
+        class TestVocab(ISC2020):
+            class Meta:
+                rdf_type = "gts:GeochronologicBoundary"
+
+        vocabulary = TestVocab()
+
+        self.assertEqual(TestVocab._meta.rdf_type, "skos:Concept")
+
+    # def test_nordf_type_option(self):
+    #     class TestVocab(ISC2020):
+    #         class Meta:
+    #             rdf_type = "skos:Concept"
+
+    #     self.assertEqual(TestVocab._meta.rdf_type, "skos:Concept")

@@ -2,7 +2,6 @@ from django.test import TestCase
 from django.urls import reverse
 
 from research_vocabs.views import (
-    TermDetailView,
     VocabularyDetailView,
     VocabularyListView,
 )
@@ -35,10 +34,3 @@ class TestURLs(TestCase):
         response = self.client.get(reverse("vocabularies:detail", args=[vocabulary]))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.resolver_match.func.view_class, VocabularyDetailView)
-
-    def test_term_view(self):
-        vocabulary = "example"
-        term = "term1"
-        response = self.client.get(reverse("vocabularies:term", args=[vocabulary, term]))
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.resolver_match.func.view_class, TermDetailView)

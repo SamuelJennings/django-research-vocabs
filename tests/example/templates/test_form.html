@@ -1,11 +1,6 @@
-{% extends request.htmx|yesno:"empty.html,base.html" %}
-
-{% block header %}Example Form{% endblock %}
-
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
 {% block content %}
-<form method='post'>
-  {% csrf_token %}
-  {{form.as_p}}
-  <button type="submit">Submit</button>
-</form>
-{% endblock %}
+  <h1>Example Form</h1>
+  {% crispy form %}
+{% endblock content %}

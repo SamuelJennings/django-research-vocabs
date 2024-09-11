@@ -1,10 +1,8 @@
-from django.http import Http404
 from django.test import TestCase
 from django.urls import reverse
 
 from research_vocabs.registry import vocab_registry
 from research_vocabs.views import (
-    TermDetailView,
     VocabularyDetailView,
     VocabularyListView,
 )
@@ -39,38 +37,3 @@ class TestVocabularyDetailView(TestCase):
     def test_template_name(self):
         view = VocabularyDetailView()
         self.assertEqual(view.template_name, "research_vocabs/vocabulary_detail.html")
-
-
-class TestTermDetailView(TestCase):
-    def setUp(self):
-        self.vocabs = vocab_registry
-        self.url = reverse("vocabularies:term", args=["example", "term1"])
-
-    def test_vocab_in_registry(self):
-        self.assertIn("example", vocab_registry.registry)
-
-    def test_get_object_existing_term(self):
-        view = TermDetailView()
-        view.kwargs = {"vocabulary": "example", "term": "term1"}
-        obj = view.get_object()
-        self.assertEqual(obj, self.term)
-
-    def test_get_object_nonexistent_term(self):
-        view = TermDetailView()
-        view.kwargs = {"vocabulary": "example", "term": "nonexistent"}
-        with self.assertRaises(Http404):
-            view.get_object()
-
-    def test_get_object_nonexistent_vocabulary(self):
-        view = TermDetailView()
-        view.kwargs = {"vocabulary": "nonexistent", "term": "term1"}
-        with self.assertRaises(Http404):
-            view.get_object()
-
-    def test_template_name(self):
-        view = TermDetailView()
-        self.assertEqual(view.template_name, "research_vocabs/term_detail.html")
-
-    def test_context_object_name(self):
-        view = TermDetailView()
-        self.assertEqual(view.context_object_name, "term")

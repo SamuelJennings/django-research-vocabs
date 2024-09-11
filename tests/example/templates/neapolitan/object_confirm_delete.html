@@ -1,0 +1,13 @@
+{% extends "neapolitan/base_form.html" %}
+{% load i18n %}
+{% block form_content %}
+  <h1>Are you sure you want to delete following {{ object_verbose_name }}?</h1>
+  <p class="mt-4">{{ object }}</p>
+  <div class="m-8">
+    <form method="post" action="{{ delete_view_url }}">
+      {% csrf_token %}
+      {{ form }}
+      <button type="submit" class="btn btn-danger">{% trans "Confirm delete" %}</button>
+    </form>
+  </div>
+{% endblock form_content %}

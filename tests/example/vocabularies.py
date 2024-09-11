@@ -1,8 +1,7 @@
 from django.utils.translation import gettext_lazy as _
 
-from research_vocabs import LocalVocabulary, RemoteVocabulary, VocabularyBuilder
+from research_vocabs import LocalVocabulary, VocabularyBuilder
 from research_vocabs.builder.skos import Collection, Concept
-from research_vocabs.registry import vocab_registry
 
 
 class SimpleLithology(LocalVocabulary):
@@ -18,7 +17,7 @@ class ISC2020(LocalVocabulary):
         source = "./vocab_data/isc2020.ttl"
         prefix = "isc"
         namespace = "http://resource.geosciml.org/classifier/ics/ischart/"
-        from_collection = "isc:test"
+        # from_collection = "isc:test"
         collections = {
             "test": Collection(
                 members=[
@@ -30,20 +29,20 @@ class ISC2020(LocalVocabulary):
         }
 
 
-class SamplingFeatureGeoType(RemoteVocabulary):
-    class Meta:
-        source = {
-            "source": "http://vocabulary.odm2.org/api/v1/samplingfeaturegeotype/?format=skos",
-            "format": "xml",
-        }
-        scheme_attrs = {
-            "skos:prefLabel": _("Sampling Feature Geo Type"),
-            "skos:altLabel": _("ODM2 Sampling Feature Geo Type"),
-            "skos:definition": _("A vocabulary for describing the types of geographic features that can be sampled."),
-        }
-        # source = "http://vocabulary.odm2.org/api/v1/samplingfeaturegeotype/?format=skos"
-        prefix = "odm2b"
-        namespace = "http://vocabulary.odm2.org/samplingfeaturegeotype/"
+# class SamplingFeatureGeoType(RemoteVocabulary):
+#     class Meta:
+#         source = {
+#             "source": "http://vocabulary.odm2.org/api/v1/samplingfeaturegeotype/?format=skos",
+#             "format": "xml",
+#         }
+#         scheme_attrs = {
+#             "skos:prefLabel": _("Sampling Feature Geo Type"),
+#             "skos:altLabel": _("ODM2 Sampling Feature Geo Type"),
+#             "skos:definition": _("A vocabulary for describing the types of geographic features that can be sampled."),
+#         }
+#         # source = "http://vocabulary.odm2.org/api/v1/samplingfeaturegeotype/?format=skos"
+#         prefix = "odm2b"
+#         namespace = "http://vocabulary.odm2.org/samplingfeaturegeotype/"
 
 
 class SampleStatus(LocalVocabulary):
@@ -115,7 +114,7 @@ class CustomMaterials(VocabularyBuilder):
 
 
 m = CustomMaterials()
-vocab_registry.register(m)
+# vocab_registry.register(m)
 
 # c = m.concepts()[0]
 

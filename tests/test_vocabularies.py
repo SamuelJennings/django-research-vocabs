@@ -1,5 +1,5 @@
 from django.test import TestCase
-from example.vocabularies import CustomMaterials
+from .example.vocabularies import CustomMaterials
 from rdflib.namespace import SKOS
 
 from research_vocabs.utils import LocalFilePathError

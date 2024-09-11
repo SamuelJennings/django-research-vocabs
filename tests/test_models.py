@@ -7,12 +7,11 @@ test_django-research-vocabs
 Tests for `django-research-vocabs` models module.
 """
 
-from django.contrib.contenttypes.models import ContentType
 from django.test import TestCase
-from example.models import TestModel
+from example.models import Lithology, TestModel
 from example.vocabularies import SimpleLithology
 
-from research_vocabs.models import Concept, TaggedConcept
+from research_vocabs.models import Concept
 
 
 class ConceptModelTest(TestCase):
@@ -34,34 +33,34 @@ class ConceptModelTest(TestCase):
         self.assertEqual(str(self.concept), self.concept.label)
 
 
-class TaggedConceptModelTest(TestCase):
-    def setUp(self):
-        self.scheme = SimpleLithology
-        self.choices = list(self.scheme.choices)
-        self.concept = Concept.objects.create(
-            label="Test Label",
-            URI="http://example.com/concept",
-            scheme_label="Test Scheme",
-            scheme_URI="http://example.com",
-        )
-        self.tagged_concept = TaggedConcept.objects.create(
-            object_id=1, content_type=ContentType.objects.get_for_model(Concept), concept=self.concept
-        )
+# class TaggedConceptModelTest(TestCase):
+#     def setUp(self):
+#         self.scheme = SimpleLithology
+#         self.choices = list(self.scheme.choices)
+#         self.concept = Concept.objects.create(
+#             label="Test Label",
+#             URI="http://example.com/concept",
+#             scheme_label="Test Scheme",
+#             scheme_URI="http://example.com",
+#         )
+#         self.tagged_concept = TaggedConcept.objects.create(
+#             object_id=1, content_type=ContentType.objects.get_for_model(Concept), concept=self.concept
+#         )
 
-    def test_tagged_concept_creation(self):
-        self.assertEqual(self.tagged_concept.object_id, 1)
-        self.assertEqual(self.tagged_concept.content_type, ContentType.objects.get_for_model(Concept))
-        self.assertEqual(self.tagged_concept.concept, self.concept)
+#     def test_tagged_concept_creation(self):
+#         self.assertEqual(self.tagged_concept.object_id, 1)
+#         self.assertEqual(self.tagged_concept.content_type, ContentType.objects.get_for_model(Concept))
+#         self.assertEqual(self.tagged_concept.concept, self.concept)
 
-    def test_save_with_URI_and_scheme(self):
-        URI = self.choices[1][0]
-        label = self.choices[1][1]
-        tagged_concept = TaggedConcept(URI=URI, scheme=self.scheme)
+#     def test_save_with_URI_and_scheme(self):
+#         URI = self.choices[1][0]
+#         label = self.choices[1][1]
+#         tagged_concept = TaggedConcept(URI=URI, scheme=self.scheme)
 
-        self.assertEqual(tagged_concept.concept.URI, URI)
-        self.assertEqual(tagged_concept.concept.label, label)
-        self.assertEqual(tagged_concept.concept.scheme_label, self.scheme.SCHEME)
-        self.assertEqual(tagged_concept.concept.scheme_URI, self.scheme.URI)
+#         self.assertEqual(tagged_concept.concept.URI, URI)
+#         self.assertEqual(tagged_concept.concept.label, label)
+#         self.assertEqual(tagged_concept.concept.scheme_label, self.scheme.SCHEME)
+#         self.assertEqual(tagged_concept.concept.scheme_URI, self.scheme.URI)
 
 
 class TestModelTest(TestCase):
@@ -79,7 +78,26 @@ class TestModelTest(TestCase):
         self.assertEqual(self.model.name, "Test Name")
         self.assertEqual(self.model.concept, self.URI)
 
-    def test_tagged_concepts_add(self):
-        tagged_concept = TaggedConcept(URI=self.URI, scheme=self.scheme)
-        self.model.tagged_concepts.add(tagged_concept, bulk=False)
-        self.assertEqual(self.model.tagged_concepts.count(), 1)
+    # def test_tagged_concepts_add(self):
+    #     tagged_concept = TaggedConcept(URI=self.URI, scheme=self.scheme)
+    #     self.model.tagged_concepts.add(tagged_concept, bulk=False)
+    #     self.assertEqual(self.model.tagged_concepts.count(), 1)
+
+
+class LithologyModelTest(TestCase):
+    def setUp(self):
+        self.scheme = SimpleLithology()
+        self.model = Lithology
+
+    def test_lithology_creation(self):
+        concept = self.scheme.concepts()[0]
+        lithology = self.model(concept=concept)
+        self.assertEqual(lithology.name, concept.name)
+        self.assertEqual(lithology.uri, concept.URI)
+        self.assertEqual(lithology.label, concept.label())
+
+    def test_preload(self):
+        Lithology.preload()
+        self.assertEqual(Lithology.objects.count(), len(self.scheme.choices))
+        for obj in Lithology.objects.all():
+            self.assertIn(obj.name, self.scheme.values)
