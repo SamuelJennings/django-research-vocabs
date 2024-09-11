@@ -133,3 +133,8 @@ def render_dl(*args, **kwargs):
 @register.inclusion_tag("research_vocabs/partials/table.html")
 def render_table(*args, **kwargs):
     return {"definitions": process_concept(*args, **kwargs)}
+
+
+@register.inclusion_tag("research_vocabs/partials/concept_list.html")
+def render_concepts(concepts):
+    return {"concept_list": concepts}
