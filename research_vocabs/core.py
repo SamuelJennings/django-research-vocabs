@@ -1,10 +1,12 @@
 import logging
 
 from django.urls import reverse_lazy
+from django.utils.encoding import force_str
 from rdflib import Graph, Literal, Namespace, URIRef
 from rdflib.namespace import RDF, SKOS
 
 from .options import VocabMeta
+from .registry import vocab_registry
 from .utils import get_translations, get_URIRef, is_translatable
 
 logger = logging.getLogger(__name__)
@@ -126,7 +128,10 @@ class VocabularyBase(metaclass=VocabMeta):
     Base class for vocabulary instances.
     """
 
+    term_type = SKOS.Concept
     graph: Graph | None = None
+
+    _types = set()
     _scheme: Concept | None = None
     _concepts: list[Concept] | None = None
     _choices: list[tuple[str, str]] | None = None
@@ -141,9 +146,11 @@ class VocabularyBase(metaclass=VocabMeta):
         self.namespaces = dict(self.graph.namespaces())
         self.build_collections()
         self.include_only = include_only
+        # register the vocabulary with the registry
+        vocab_registry[self.scheme().name] = self
 
     def __str__(self):
-        return self.scheme().label("en")
+        return force_str(self.scheme().label("en"))
 
     def __iter__(self):
         return self.choices
@@ -179,6 +186,8 @@ class VocabularyBase(metaclass=VocabMeta):
         if self._choices:
             return self._choices
 
+        choices = self.filter_concepts(self.concepts())
+
         if self.include_only:
             # only return those concepts specified in the "include" list
             self._choices = [self.get_choice_tuple(self.get_concept(i)) for i in self.include_only]
@@ -189,7 +198,7 @@ class VocabularyBase(metaclass=VocabMeta):
 
             collection = Concept(coll, self, rdf_type=SKOS.Collection)
 
-            self._choices = [self.get_choice_tuple(member) for member in collection["skos:member"]]
+            self._choices = [self.get_choice_tuple(member) for member in collection.attrs["skos:member"]]
             return self._choices
 
         self._choices = [self.get_choice_tuple(concept) for concept in self.concepts()]
@@ -256,17 +265,45 @@ class VocabularyBase(metaclass=VocabMeta):
             self._scheme = Concept(scheme, self, rdf_type=SKOS.ConceptScheme)
         return self._scheme
 
-    def concepts(self):
-        """Returns a generator of all subjects where the RDF.type is a SKOS.Concept."""
-        if self.__class__._concepts:
-            return self.__class__._concepts
+    def get_subjects(self):
+        """Returns the initial generator of all subjects where the RDF.type is a self.term_type. Override this if you want
+        to explicitly filter the graph yourself."""
+        rdf_type = get_URIRef(self._meta.rdf_type, self.graph, self.ns)
+        return self.graph.subjects(predicate=RDF.type, object=rdf_type)
 
-        self.__class__._concepts = [
-            Concept(s, self) for s in self.graph.subjects(predicate=RDF.type, object=SKOS.Concept)
-        ]
+    def get_types(self, as_uriref=False):
+        if not self._types:
+            types = set()
+            for s, p, o in self.graph.triples((None, RDF.type, None)):
+                types.add(o)
+            self._types = types
+        if as_uriref:
+            return list(self._types)
+        return sorted([self.graph.namespace_manager.qname(t) for t in self._types])
+
+    def _populate_types(self):
+        types = set()
+        for s, p, o in self.graph.triples((None, RDF.type, None)):
+            types.add(o)
+        self._types = types
+
+    def get_terms(self):
+        """Builds a list of Concept objects from the generator returned by self.get_subjects. Override this if you want to filter the concepts in a specific way."""
+        return [Concept(s, self) for s in self.get_subjects()]
+
+    def concepts(self):
+        """"""
+        if self._concepts:
+            return self._concepts
+
+        self.__class__._concepts = self.get_terms()
         if self._meta.ordered:
             self.__class__._concepts = sorted(self.__class__._concepts, key=lambda x: x.label())
         return self.__class__._concepts
+
+    def filter_concepts(self, concept_list):
+        """Filters concepts based on the provided keyword arguments."""
+        return concept_list
 
     def get_concept(self, name: str | URIRef) -> Concept:
         """Returns a Concept object from the Graph based on the name or URI."""
@@ -297,7 +334,7 @@ class VocabularyBase(metaclass=VocabMeta):
             # not the most robust way to distinguish declared concepts
             # but it works for now
             if isinstance(attrs, dict):
-                self.add_concept(subj, SKOS.Concept, attrs)
+                self.add_concept(subj, self.term_type, attrs)
 
     # @classmethod
     def add_concept(self, term, object: URIRef, attrs: dict):  # noqa: A002

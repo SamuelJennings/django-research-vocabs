@@ -4,8 +4,6 @@ from django.utils.translation import gettext as _
 
 from research_vocabs.core import Concept
 
-from .registry import vocab_registry
-
 
 class MissingConceptSchemeError(Exception):
     """Raised when a concept scheme is not passed as an argument to the ConceptField class."""
@@ -43,10 +41,12 @@ class BaseConceptField(Field):
 
         self.scheme = self.vocabulary(include_only=include_only)
 
-        vocab_registry.register(self.scheme)
+        # vocab_registry.register(self.scheme)
 
         kwargs["choices"] = list(self.scheme.choices)
         kwargs["verbose_name"] = kwargs.get("verbose_name", self.scheme.scheme().label())
+        kwargs["max_length"] = len(max(self.scheme.choices, key=lambda x: len(x[0]))[0])
+
         super().__init__(*args, **kwargs)
 
     def deconstruct(self):
@@ -150,10 +150,36 @@ class TaggableConcepts(GenericRelation):
         """
         Initializes the TaggableConcepts field with a relation to the "research_vocabs.TaggedConcept" model.
         """
-        kwargs["to"] = "research_vocabs.TaggedConcept"
+        kwargs["to"] = "research_vocabs.Concept"
         self.taggable_concepts = kwargs.pop("taggable_concepts", None)
 
         super().__init__(*args, **kwargs)
 
+    # def contribute_to_related_class(self, cls, related):
+    #     """
+    #     Adds the field to the related class and sets the model instance.
+
+    #     Args:
+    #         cls (Model): The model class to which the field is being added.
+    #         related (RelatedObject): The related object.
+    #     """
+    #     super().contribute_to_related_class(cls, related)
+    # auto add the vocab to the class
+    # setattr(cls, f"{related.get_accessor_name()}_vocab", self.taggable_concepts)
+
+
+# class TaggableUUIDConcepts(TaggableConcepts):
+
+#     def contribute_to_related_class(self, cls, related):
+#         """
+#         Adds the field to the related class and sets the model instance.
+
+#         Args:
+#             cls (Model): The model class to which the field is being added.
+#             related (RelatedObject): The related object.
+#         """
+#         super().contribute_to_related_class(cls, related)
+#         # change object_id field to UUIDField
+#         cls._meta.get_field("object_id").__class__ = models.UUIDField()
 
 __all__ = ["ConceptURIField", "ConceptField", "TaggableConcepts"]

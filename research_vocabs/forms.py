@@ -1,95 +1,88 @@
 from django import forms
 
-from research_vocabs.models import Concept, TaggedConcept
+from research_vocabs.core import Concept as BaseConcept
+from research_vocabs.models import Concept
 
 
-class TaggableFieldRequired(Exception):
-    def __init__(self, model_name, field):
-        message = f"Model {model_name} does not have a taggable field {field}"
-        super().__init__(message)
-
-
-class KeywordFieldBase:
-    def __init__(self, scheme="", *args, **kwargs):
-        """Initialize the field."""
-        self.scheme = scheme
-
-        super().__init__(*args, **kwargs)
-        self.choices = self.scheme.choices
-
-    def clean(self, value):
-        """Clean the field."""
-        value = super().clean(value)
-
-        if not isinstance(value, list):
-            value = [value]
-
-        # for value in value:
-        #     if isinstance(value, Concept):
-        #         continue
-        # value, created = Concept.add_concept(URI=value, scheme=self.scheme)
-
-        return [Concept.add_concept(URI=value, scheme=self.scheme)[0] for value in value]
-
-
-class KeywordChoiceField(KeywordFieldBase, forms.ChoiceField):
-    """A field that is used to collect controlled keywords and add them to a designated keyword field on the model."""
-
-
-class KeywordMultiChoiceField(KeywordFieldBase, forms.MultipleChoiceField):
-    """A field that is used to collect multiple controlled keywords and add them to a designated keyword field on the model."""
-
-
-class KeywordFormMixin:
-    """When KeywordFormMixin is used in a form, the form will automatically detect KeywordField fields and clean them and add them to a designated keyword field on the model."""
+class TaggableConceptFormMixin:
+    """When TaggableConceptFormMixin is used in a form, the form will automatically detect KeywordField fields and clean them and add them to a designated keyword field on the model."""
 
     def __init__(self, *args, **kwargs):
         """Initialize the form."""
         super().__init__(*args, **kwargs)
-        self.taggable_schemes = getattr(self.Meta, "taggable_schemes", {})
-        self.taggable_field = getattr(self.Meta, "taggable_field", "tagged_concepts")
+        # Ensure taggable_field_name and taggable_fields are defined in Meta
+        if not hasattr(self.Meta, "taggable_field_name") or not hasattr(self.Meta, "taggable_fields"):
+            raise AttributeError("Meta class must define 'taggable_field_name' and 'taggable_fields'.")
 
-        # make sure the model has a taggable field
-        if not hasattr(self.Meta.model, self.taggable_field):
-            raise TaggableFieldRequired(self.Meta.model, self.taggable_field)
+        self.taggable_field_name = self.Meta.taggable_field_name
+        self.taggable_fields = self.Meta.taggable_fields
 
-        if self.taggable_schemes:
-            for field_name, opts in self.taggable_schemes.items():
-                field_class = KeywordMultiChoiceField if opts.get("multiple") else KeywordChoiceField
-                self.fields[field_name] = field_class(scheme=opts["scheme"])
+        # Initialize the hidden field for the M2M relationship
+        # self.fields[self.taggable_field_name] = forms.ModelMultipleChoiceField(
+        #     widget=forms.HiddenInput, queryset=Concept.objects.all(), required=False
+        # )
 
-        self.keyword_fields = [name for name, f in self.fields.items() if isinstance(f, KeywordFieldBase)]
+        if self.instance and self.instance.pk:
+            self.populate_concept_fields()
+
+    def populate_concept_fields(self):
+        """Make sure the correct form fields are populated with the correct concepts."""
+        concepts = getattr(self.instance, self.taggable_field_name).all()
+        for fname in self.taggable_fields:
+            f_vocab = self.fields[fname].vocabulary
+            # this will produce wrong results if multiple vocabularies have a term with the same name
+            self.initial[fname] = [c.name for c in concepts if c.name in f_vocab.values]
 
     def clean(self):
         """Clean all fields."""
         super().clean()
-        self.cleaned_data[self.taggable_field] = self._clean_keywords()
+        self.concepts = self._clean_concepts()
 
-    def _clean_keywords(self):
+    def _clean_concepts(self):
         """Clean the keywords."""
-        keywords = []
-        for fname in self.keyword_fields:
-            for value in self.cleaned_data[fname]:
-                keywords.append(value)
-        return keywords
+        concepts = []
+        for fname in self.taggable_fields:
+            value = self.cleaned_data.get(fname)
+            if not value:
+                continue
+            if isinstance(value, BaseConcept):
+                value = [value]
 
-
-class KeywordForm(KeywordFormMixin, forms.Form):
-    pass
-
-
-class KeywordModelForm(KeywordFormMixin, forms.ModelForm):
-    # @transaction.atomic
-    # def save(self, commit=True):
-    #     return super().save(commit)
+            concepts.extend(value)
+        return concepts
 
     def _save_m2m(self):
         """Save the cleaned data to the model."""
         super()._save_m2m()
-        keywords = []
-        for concept in self.cleaned_data[self.taggable_field]:
-            tag = TaggedConcept(content_object=self.instance, concept=concept)
-            # tag.save()
-            keywords.append(tag)
+        self.update_taggable_concepts()
 
-        getattr(self.instance, self.taggable_field).add(*keywords, bulk=False)
+    def update_taggable_concepts(self):
+        concepts = []
+        for c in self.concepts:
+            obj, created = Concept.add_concept(c)
+            concepts.append(obj)
+        getattr(self.instance, self.taggable_field_name).add(*concepts)
+
+
+class ConceptField(forms.ChoiceField):
+    def __init__(self, vocabulary, *args, **kwargs):
+        self.vocabulary = vocabulary()
+        kwargs["choices"] = self.vocabulary.choices
+        super().__init__(*args, **kwargs)
+
+    def to_python(self, value):
+        if value in self.empty_values:
+            return None
+        return self.vocabulary.get_concept(value)
+
+
+class MultiConceptField(forms.MultipleChoiceField):
+    def __init__(self, vocabulary, *args, **kwargs):
+        self.vocabulary = vocabulary()
+        kwargs["choices"] = self.vocabulary.choices
+        super().__init__(*args, **kwargs)
+
+    def to_python(self, value):
+        if not value:
+            return []
+        return [self.vocabulary.get_concept(v) for v in value]

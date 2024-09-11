@@ -79,6 +79,12 @@ def get_URIRef(val: str | URIRef, graph: Graph, ns):
 cache = caches[get_setting("DEFAULT_CACHE")]
 
 
+VOCABULARY_CACHE = {
+    "BACKEND": "django.core.cache.backends.filebased.FileBasedCache",
+    "LOCATION": settings.BASE_DIR / ".vocabularies-cache",
+}
+
+
 def decamelize(value):
     """De-camelizes a camel case string."""
     return " ".join(re.findall(r"[A-Z]?[a-z]+|[A-Z]+(?=[A-Z]|$)", value)).lower()

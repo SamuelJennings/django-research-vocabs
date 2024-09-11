@@ -9,7 +9,7 @@ class VocabularyListView(ListView):
     context_object_name = "vocabularies"
 
     def get(self, request, *args, **kwargs):
-        self.object_list = vocab_registry.registry
+        self.object_list = vocab_registry.items()
         context = self.get_context_data()
         return self.render_to_response(context)
 
@@ -19,7 +19,7 @@ class VocabularyDetailView(DetailView):
 
     def get_object(self):
         try:
-            self.vocabulary = vocab_registry.registry[self.kwargs["vocabulary"]]
+            self.vocabulary = vocab_registry[self.kwargs["vocabulary"]]
         except KeyError as e:
             msg = "The requested vocabulary could not be found"
             raise Http404(msg) from e

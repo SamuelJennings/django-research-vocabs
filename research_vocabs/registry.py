@@ -1,4 +1,4 @@
-class VocabRegistry:
+class VocabRegistry(dict):
     """A registry of vocabularies that have been used in the application."""
 
     def __init__(self):

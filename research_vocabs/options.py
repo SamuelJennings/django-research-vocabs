@@ -19,6 +19,9 @@ class VocabularyOptions:
     from_collection = ""
     """The name of a SKOS:Collection used to restrict accepted values to a subset of concepts within the graph."""
 
+    rdf_type = "skos:Concept"
+    """The RDF type used to identify terms in the vocabulary. This is used to filter concepts in the graph."""
+
     scheme_attrs = {}
     collections = {}
     ordered_collections = []
