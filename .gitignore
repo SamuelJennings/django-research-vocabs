@@ -85,6 +85,6 @@ venv.bak/
 dist
 
 
-#no migration files except __init__.py
-**/migrations/*
+#no migration files in test app except __init__.py
+tests/**/migrations/*
 !**/migrations/__init__.py
