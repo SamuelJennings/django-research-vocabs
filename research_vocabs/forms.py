@@ -1,4 +1,5 @@
 from django import forms
+from django.utils.safestring import mark_safe
 
 from research_vocabs.core import Concept as BaseConcept
 from research_vocabs.models import Concept
@@ -64,24 +65,29 @@ class TaggableConceptFormMixin:
         getattr(self.instance, self.taggable_field_name).add(*concepts)
 
 
-class ConceptField(forms.ChoiceField):
+class ConceptFieldMixin:
     def __init__(self, vocabulary, *args, **kwargs):
         self.vocabulary = vocabulary()
         kwargs["choices"] = self.vocabulary.choices
+
+        kwargs["label"] = kwargs.get("label", self.vocabulary.label())
+        if not kwargs.get("help_text"):
+            scheme_uri = self.vocabulary.scheme().URI
+            label = self.vocabulary.label()
+            kwargs["help_text"] = mark_safe(  # noqa: S308
+                f"Select terms from the <a href='{scheme_uri}' target='_blank'>{label}</a> controlled vocabulary."  # noqa: S608
+            )
         super().__init__(*args, **kwargs)
 
+
+class ConceptField(ConceptFieldMixin, forms.ChoiceField):
     def to_python(self, value):
         if value in self.empty_values:
             return None
         return self.vocabulary.get_concept(value)
 
 
-class MultiConceptField(forms.MultipleChoiceField):
-    def __init__(self, vocabulary, *args, **kwargs):
-        self.vocabulary = vocabulary()
-        kwargs["choices"] = self.vocabulary.choices
-        super().__init__(*args, **kwargs)
-
+class MultiConceptField(ConceptFieldMixin, forms.MultipleChoiceField):
     def to_python(self, value):
         if not value:
             return []

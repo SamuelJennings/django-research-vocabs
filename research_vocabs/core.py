@@ -8,13 +8,16 @@ from rdflib.namespace import RDF, SKOS
 
 from .options import VocabMeta
 from .registry import vocab_registry
-from .utils import get_translations, get_URIRef, is_translatable
+from .utils import get_translations, get_URIRef
 
 logger = logging.getLogger(__name__)
 
 # TODO:
 # - grouped choices (e.g. by collection or tree structure)
 # - include or exclude concepts using list of values (can use a filter method, can use collections)
+LABEL_PREDICATES = ["skos:prefLabel", "dcterms:title", "rdfs:label", "sdo:name"]
+
+DESCRIPTION_PREDICATES = ["skos:definition", "dcterms:description", "purl:definition", "sdo:description"]
 
 
 class ConceptAttrs(dict):
@@ -164,7 +167,9 @@ class VocabularyBase(metaclass=VocabMeta):
         elif isinstance(self._meta.source, dict):
             return self._meta.source
         else:
-            msg = f"source must be a string or a dictionary. You provided {type(self._meta.source)}: {self._meta.source}"
+            msg = (
+                f"source must be a string or a dictionary. You provided {type(self._meta.source)}: {self._meta.source}"
+            )
             raise TypeError(msg)
 
     def label(self, lang="en"):
@@ -190,9 +195,7 @@ class VocabularyBase(metaclass=VocabMeta):
 
         if self.include_only:
             # only return those concepts specified in the "include" list
-            self._choices = [
-                self.get_choice_tuple(self.get_concept(i)) for i in self.include_only
-            ]
+            self._choices = [self.get_choice_tuple(self.get_concept(i)) for i in self.include_only]
             return self._choices
 
         if coll := self._meta.from_collection:
@@ -200,10 +203,7 @@ class VocabularyBase(metaclass=VocabMeta):
 
             collection = Concept(coll, self, rdf_type=SKOS.Collection)
 
-            self._choices = [
-                self.get_choice_tuple(member)
-                for member in collection.attrs["skos:member"]
-            ]
+            self._choices = [self.get_choice_tuple(member) for member in collection.attrs["skos:member"]]
             return self._choices
 
         self._choices = [self.get_choice_tuple(concept) for concept in self.concepts()]
@@ -262,9 +262,7 @@ class VocabularyBase(metaclass=VocabMeta):
 
     def build_graph(self):
         """This should be overriden in the subclass to build the graph from a local file or remote URL."""
-        raise NotImplementedError(
-            "You must implement the build_graph method in your subclass."
-        )
+        raise NotImplementedError("You must implement the build_graph method in your subclass.")
 
     def scheme(self) -> Concept:
         if not self._scheme:
@@ -305,9 +303,7 @@ class VocabularyBase(metaclass=VocabMeta):
 
         self.__class__._concepts = self.get_terms()
         if self._meta.ordered:
-            self.__class__._concepts = sorted(
-                self.__class__._concepts, key=lambda x: x.label()
-            )
+            self.__class__._concepts = sorted(self.__class__._concepts, key=lambda x: x.label())
         return self.__class__._concepts
 
     def filter_concepts(self, concept_list):
@@ -324,18 +320,12 @@ class VocabularyBase(metaclass=VocabMeta):
         collections = self._meta.collections
         ordered_collections = self._meta.ordered_collections
         for name, collection in collections.items():
-            collection["skos:member"] = [
-                get_URIRef(m, self.graph, self.ns) for m in collection["skos:member"]
-            ]
+            collection["skos:member"] = [get_URIRef(m, self.graph, self.ns) for m in collection["skos:member"]]
 
             if not collection.ordered:
                 collection["skos:member"] = sorted(collection["skos:member"])
 
-            rdfType = (
-                SKOS.OrderedCollection
-                if name in ordered_collections
-                else SKOS.Collection
-            )
+            rdfType = SKOS.OrderedCollection if name in ordered_collections else SKOS.Collection
             self.add_concept(name, rdfType, collection)
 
     def _build_translatable_triples(self, subj, pred, obj):
@@ -383,15 +373,15 @@ class VocabularyBase(metaclass=VocabMeta):
 
             if isinstance(o, list):
                 for entry in o:
-                    if is_translatable(entry):
-                        self._build_translatable_triples(subject, p, entry)
-                    elif isinstance(entry, URIRef):
+                    # if is_translatable(entry):
+                    # self._build_translatable_triples(subject, p, entry)
+                    if isinstance(entry, URIRef):
                         self.graph.add((subject, p, entry))
                     else:
                         self.graph.add((subject, p, Literal(entry)))
 
-            elif is_translatable(o):
-                self._build_translatable_triples(subject, p, o)
+            # elif is_translatable(o):
+            # self._build_translatable_triples(subject, p, o)
 
             else:
                 self.graph.add((subject, p, Literal(o)))

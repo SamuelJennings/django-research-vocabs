@@ -4,6 +4,8 @@ from django.utils.translation import gettext as _
 
 from research_vocabs.core import Concept
 
+from .utils import validate_url_safe
+
 
 class MissingConceptSchemeError(Exception):
     """Raised when a concept scheme is not passed as an argument to the ConceptField class."""
@@ -102,6 +104,15 @@ class BaseConceptField(Field):
 
         return value
 
+    def from_db_value(self, value, expression, connection):
+        """
+        Converts the database value to a Concept object.
+        """
+        if value is None:
+            return value
+
+        return Concept(value, self.scheme)
+
     def to_python(self, value):
         """
         Converts the URI value to a Concept object.
@@ -109,7 +120,7 @@ class BaseConceptField(Field):
         if isinstance(value, Concept):
             return value
 
-        if value is None:
+        if value is None or value == "":
             return value
 
         return Concept(value, self.scheme)
@@ -118,7 +129,7 @@ class BaseConceptField(Field):
         """
         Validates the field value.
         """
-        if value is None:
+        if value is None or value == "":
             return
 
         if not isinstance(value, Concept):
@@ -137,6 +148,12 @@ class ConceptField(BaseConceptField, CharField):
     """
     A field that stores vocabulary concepts as a simple text value.
     """
+
+    def validate(self, value, model_instance):
+        """Enforce URL safety."""
+        super().validate(value, model_instance)
+        if value is not None and value != "":
+            validate_url_safe(str(value))
 
 
 class TaggableConcepts(GenericRelation):
@@ -182,4 +199,4 @@ class TaggableConcepts(GenericRelation):
 #         # change object_id field to UUIDField
 #         cls._meta.get_field("object_id").__class__ = models.UUIDField()
 
-__all__ = ["ConceptURIField", "ConceptField", "TaggableConcepts"]
+__all__ = ["ConceptField", "ConceptURIField", "TaggableConcepts"]

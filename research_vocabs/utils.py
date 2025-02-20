@@ -2,10 +2,18 @@ import re
 
 from django.conf import settings
 from django.core.cache import caches
+from django.core.exceptions import ValidationError
 from django.utils import translation
 from django.utils.safestring import SafeString
 from django.utils.translation import trans_real
 from rdflib import Graph, URIRef
+
+URL_SAFE_REGEX = re.compile(r"^[a-zA-Z0-9_\-\.]+$")
+
+
+def validate_url_safe(value):
+    if not URL_SAFE_REGEX.match(value):
+        raise ValidationError("This field only allows URL-safe characters: letters, numbers, '-', '_', and '.'")
 
 
 class LocalFilePathError(Exception):
