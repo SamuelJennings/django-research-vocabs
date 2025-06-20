@@ -7,7 +7,6 @@ from rdflib import Graph, Literal, Namespace, URIRef
 from rdflib.namespace import RDF, SKOS
 
 from .options import VocabMeta
-from .registry import vocab_registry
 from .utils import get_translations, get_URIRef
 
 logger = logging.getLogger(__name__)
@@ -152,7 +151,7 @@ class VocabularyBase(metaclass=VocabMeta):
         self.build_collections()
         self.include_only = include_only
         # register the vocabulary with the registry
-        vocab_registry[self.scheme().name] = self
+        # vocab_registry[self.scheme().name] = self
 
     def __str__(self):
         return force_str(self.scheme().label("en"))

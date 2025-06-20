@@ -1,9 +1,13 @@
 from django.contrib.contenttypes.fields import GenericRelation
-from django.db.models import CharField, Field, URLField
+from django.db import models
+from django.utils.module_loading import import_string
 from django.utils.translation import gettext as _
 
 from research_vocabs.core import Concept
 
+from . import registry
+
+# from .registry import vocab_registry
 from .utils import validate_url_safe
 
 
@@ -16,7 +20,7 @@ class MissingConceptSchemeError(Exception):
     # super().__init__("ConceptField requires a ConceptScheme object to be passed as an argument.")
 
 
-class BaseConceptField(Field):
+class BaseConceptField(models.Field):
     """
     A custom field class that stores vocabulary concepts as a fully qualified URI. The concept scheme is passed as an argument during the initialization of the class.
 
@@ -138,13 +142,13 @@ class BaseConceptField(Field):
         super().validate(value.name, model_instance)
 
 
-class ConceptURIField(BaseConceptField, URLField):
+class ConceptURIField(BaseConceptField, models.URLField):
     """
     A field that stores vocabulary concepts as a fully qualified URI.
     """
 
 
-class ConceptField(BaseConceptField, CharField):
+class ConceptField(BaseConceptField, models.CharField):
     """
     A field that stores vocabulary concepts as a simple text value.
     """
@@ -154,6 +158,76 @@ class ConceptField(BaseConceptField, CharField):
         super().validate(value, model_instance)
         if value is not None and value != "":
             validate_url_safe(str(value))
+
+
+class RelatedConceptMixin:
+    """
+    A mixin for fields that are related to a concept in a vocabulary.
+    This mixin is used to add common functionality to fields that are related to a concept.
+    """
+
+    def __init__(self, *args, vocabulary=None, **kwargs):
+        self.vocabulary = vocabulary
+        if not self.vocabulary:
+            raise MissingConceptSchemeError
+
+        self.scheme = self.vocabulary()
+        if not kwargs.get("to"):
+            # If no 'to' argument is provided, set it to the default Concept model.
+            # This allows the field to be used as a foreign key or many-to-many field to a concept.
+            kwargs["to"] = "research_vocabs.Concept"
+
+        if isinstance(vocabulary, str):
+            vocabulary = import_string(vocabulary)
+        # if not issubclass(vocabulary, VocabularyBase):
+        #     raise TypeError(f"Expected a VocabularyBase instance, got {type(vocabulary)} instead.")
+
+        # self.vocabulary = vocabulary()
+        # kwargs["verbose_name"] = kwargs.get("verbose_name", vocabulary.scheme().label())
+        registry.register(self.scheme)
+
+        # if not kwargs.get("related_name"):
+        kwargs["related_name"] = "+"
+
+        super().__init__(*args, **kwargs)
+
+    def deconstruct(self):
+        """Used to recreate the field."""
+        name, path, args, kwargs = super().deconstruct()
+        kwargs["vocabulary"] = self.vocabulary
+        return name, path, args, kwargs
+
+    def contribute_to_class(self, cls, name, **kwargs):
+        """
+        Adds the field to the class and sets the model instance.
+
+        Args:
+            cls (Model): The model class to which the field is being added.
+            name (str): The name of the field.
+        """
+        super().contribute_to_class(cls, name, **kwargs)
+        # auto add the vocab to the class
+        setattr(cls, f"{name}_vocab", self.scheme)
+
+
+class ConceptForeignKey(RelatedConceptMixin, models.ForeignKey):
+    """
+    A field that stores a foreign key to a concept in a vocabulary.
+    This is a placeholder for future implementation of a foreign key to a concept.
+    """
+
+    pass
+
+
+class ConceptManyToManyField(RelatedConceptMixin, models.ManyToManyField):
+    """
+    A field that stores a many-to-many relationship to concepts in a vocabulary.
+    This is a placeholder for future implementation of a many-to-many field to concepts.
+    """
+
+    # def contribute_to_class(self, cls, name, **kwargs):
+    #     super().contribute_to_class(cls, name, **kwargs)
+    #     setattr(cls, self.name, ManyToManyConceptDescriptor(self))
 
 
 class TaggableConcepts(GenericRelation):
