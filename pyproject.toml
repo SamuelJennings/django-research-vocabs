@@ -20,7 +20,7 @@ classifiers = [
 
 [tool.poetry.dependencies]
 python = ">=3.10,<4.0"
-django = ">=3.2"
+django = ">=5"
 rdflib = "^7.0.0"
 
 
