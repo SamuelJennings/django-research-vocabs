@@ -110,7 +110,7 @@ class AbstractConcept(models.Model):
         return {
             "name": concept.name,
             "label": concept.label(),
-            "meta": concept.attrs,
+            # "meta": concept.attrs,
         }
 
     @classmethod

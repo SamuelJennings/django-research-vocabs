@@ -26,8 +26,13 @@ class TaggableConceptFormMixin:
         if self.instance and self.instance.pk:
             self.populate_concept_fields()
 
+    def before_populate_concepts(self):
+        """Hook for subclasses to perform actions before populating concepts. E.g. dynamically adding fields."""
+        pass
+
     def populate_concept_fields(self):
         """Make sure the correct form fields are populated with the correct concepts."""
+        self.before_populate_concepts()
         concepts = getattr(self.instance, self.taggable_field_name).all()
         for fname in self.taggable_fields:
             f_vocab = self.fields[fname].vocabulary
@@ -50,7 +55,7 @@ class TaggableConceptFormMixin:
                 value = [value]
 
             concepts.extend(value)
-        return concepts
+        return set(concepts)
 
     def _save_m2m(self):
         """Save the cleaned data to the model."""
@@ -62,7 +67,7 @@ class TaggableConceptFormMixin:
         for c in self.concepts:
             obj, created = Concept.add_concept(c)
             concepts.append(obj)
-        getattr(self.instance, self.taggable_field_name).add(*concepts)
+        getattr(self.instance, self.taggable_field_name).set(set(concepts))
 
 
 class ConceptFieldMixin:
